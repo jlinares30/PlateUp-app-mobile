@@ -6,6 +6,7 @@ export default function AppLayout() {
       <Stack.Screen name="index" options={{ title: "Home" }} />
       <Stack.Screen name="recipes" options={{ headerShown: false }} />
       <Stack.Screen name="mealplans" options={{ headerShown: false }} />
+      <Stack.Screen name="ingredients" options={{ headerShown: false }} />
     </Stack>
   );
 }

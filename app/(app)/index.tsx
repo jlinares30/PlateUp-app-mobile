@@ -21,7 +21,7 @@ export default function AppHome() {
       description: 'Your favorite recipes',
       icon: '❤️',
       color: '#e67e22',
-      route: '/recipes' as const
+      route: '/recipes' as Href
     },
     {
       id: '3',
@@ -29,7 +29,7 @@ export default function AppHome() {
       description: 'Explore by categories',
       icon: '📂',
       color: '#3498db',
-      route: '/recipes' as const
+      route: '/recipes' as Href
     },
     {
       id: '4',
@@ -45,7 +45,7 @@ export default function AppHome() {
       description: 'Ingredients to buy',
       icon: '🛒',
       color: '#e74c3c',
-      route: '/recipes' as const
+      route: '/recipes' as Href
     },
     {
       id: '6',
@@ -53,7 +53,7 @@ export default function AppHome() {
       description: 'Manage your ingredients',
       icon: '🥦',
       color: '#f1c40f',
-      route: '/recipes' as const
+      route: '/ingredients' as Href
     },
     {
       id: '7',
@@ -61,7 +61,7 @@ export default function AppHome() {
       description: 'Configure your account',
       icon: '👤',
       color: '#9b59b6',
-      route: '/recipes' as const
+      route: '/recipes' as Href
     }
   ];
 

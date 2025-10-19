@@ -16,7 +16,7 @@ interface Ingredient {
   ingredient: {
     _id: string;
     name: string;
-  } | string; // a veces el backend puede devolver solo el ObjectId como string
+  } | string;
   quantity: number;
   unit: string;
 }
@@ -43,8 +43,8 @@ export default function RecipeDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/recipes/${recipeId}`); // ajusta endpoint si es diferente
-      const data = res.data?.data ?? res.data; // maneja ambos formatos
+      const res = await api.get(`/recipes/${recipeId}`);
+      const data = res.data?.data ?? res.data;
 
       setRecipe(data);
       //console.log("fetchRecipe data:", data);
