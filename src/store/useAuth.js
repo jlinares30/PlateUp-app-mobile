@@ -1,7 +1,8 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import api from "../lib/api.js";
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create(persist((set) => ({
   user: null,
   token: null,
   loading: false,
@@ -30,4 +31,5 @@ export const useAuthStore = create((set) => ({
     }
   },
   logout: () => set({ user: null }),
-}));
+})));
+  

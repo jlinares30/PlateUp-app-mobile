@@ -9,32 +9,56 @@ export default function AppHome() {
   const menuItems = [
     {
       id: '1',
-      title: 'Ver Recetas',
-      description: 'Descubre deliciosas recetas',
+      title: 'Recipes',
+      description: 'Discover delicious recipes',
       icon: '🍽️',
       color: '#e74c3c',
       route: '/recipes' as const
     },
     {
       id: '2',
-      title: 'Favoritos',
-      description: 'Tus recetas favoritas',
+      title: 'Favorites',
+      description: 'Your favorite recipes',
       icon: '❤️',
       color: '#e67e22',
       route: '/recipes' as const
     },
     {
       id: '3',
-      title: 'Categorías',
-      description: 'Explora por categorías',
+      title: 'Categories',
+      description: 'Explore by categories',
       icon: '📂',
       color: '#3498db',
       route: '/recipes' as const
     },
     {
       id: '4',
-      title: 'Mi Perfil',
-      description: 'Configura tu cuenta',
+      title: 'Meal Plans',
+      description: 'Planner of meals',
+      icon: '🗓️',
+      color: '#2ecc71',
+      route: '/recipes' as const
+    },
+    {
+      id: '5',
+      title: 'Shopping List',
+      description: 'Ingredients to buy',
+      icon: '🛒',
+      color: '#e74c3c',
+      route: '/recipes' as const
+    },
+    {
+      id: '6',
+      title: 'Ingredients',
+      description: 'Manage your ingredients',
+      icon: '🥦',
+      color: '#f1c40f',
+      route: '/recipes' as const
+    },
+    {
+      id: '7',
+      title: 'My Profile',
+      description: 'Configure your account',
       icon: '👤',
       color: '#9b59b6',
       route: '/recipes' as const
@@ -63,28 +87,28 @@ export default function AppHome() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>¡Hola!</Text>
-          <Text style={styles.subtitleText}>¿Qué vamos a cocinar hoy?</Text>
+          <Text style={styles.welcomeText}>¡Hello!</Text>
+          <Text style={styles.subtitleText}>What are we cooking today?</Text>
         </View>
         <TouchableOpacity 
           style={styles.logoutButton}
           onPress={() => router.replace("/(auth)/login")}
         >
-          <Text style={styles.logoutText}>Salir</Text>
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.heroSection}>
         <Text style={styles.heroEmoji}>👨‍🍳</Text>
-        <Text style={styles.heroTitle}>Bienvenido a tu</Text>
-        <Text style={styles.heroSubtitle}>Cocina Digital</Text>
+        <Text style={styles.heroTitle}>Welcome to your</Text>
+        <Text style={styles.heroSubtitle}>Digital Kitchen</Text>
         <Text style={styles.heroDescription}>
-          Descubre, cocina y disfruta de las mejores recetas
+          Discover, cook, and enjoy the best recipes right at your fingertips.
         </Text>
       </View>
 
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Explorar</Text>
+        <Text style={styles.sectionTitle}>Explore</Text>
         <View style={styles.menuGrid}>
           {menuItems.map(renderMenuItem)}
         </View>
@@ -93,17 +117,17 @@ export default function AppHome() {
       <View style={styles.quickStats}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>50+</Text>
-          <Text style={styles.statLabel}>Recetas</Text>
+          <Text style={styles.statLabel}>Recipes</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>15</Text>
-          <Text style={styles.statLabel}>Categorías</Text>
+          <Text style={styles.statLabel}>Categories</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>5★</Text>
-          <Text style={styles.statLabel}>Valoración</Text>
+          <Text style={styles.statLabel}>Rating</Text>
         </View>
       </View>
     </ScrollView>

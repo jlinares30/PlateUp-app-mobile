@@ -1,21 +1,40 @@
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import api from "../../../src/lib/api.js";
 
 interface Recipe {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   time: string;
 }
 
-const recipes: Recipe[] = [
-  { id: "1", title: "Ensalada de Pollo", description: "Fresca ensalada con pollo a la parrilla", time: "15 min" },
-  { id: "2", title: "Pasta al Pesto", description: "Deliciosa pasta con salsa de albahaca", time: "20 min" },
-  { id: "3", title: "Arroz con Verduras", description: "Arroz integral con vegetales frescos", time: "25 min" },
-];
-
 export default function RecipesScreen() {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const fetchRecipes = async () => {
+    try {
+      const res = await api.get("/recipes");
+      setRecipes(res.data);
+    } catch (error) {
+      setError("Error fetching recipes");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchRecipes();
+  }, []);
+
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
-    <TouchableOpacity style={styles.recipeCard}>
+    <TouchableOpacity style={styles.recipeCard}
+      onPress={() => router.push(`/recipes/${item._id}`)}
+    >
       <View style={styles.recipeContent}>
         <View style={styles.recipeHeader}>
           <Text style={styles.recipeTitle}>{item.title}</Text>
@@ -30,10 +49,10 @@ export default function RecipesScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Lista de Recetas</Text>
+      <Text style={styles.headerTitle}>Recipe List</Text>
       <FlatList
         data={recipes}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         renderItem={renderRecipeItem}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContainer}

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStore } from "../store/useAuth";
 
 const api = axios.create({
     //for real device
@@ -8,4 +9,13 @@ const api = axios.create({
     baseURL: "http://10.0.2.2:5001/api", 
     timeout: 10000, 
 });
+
+api.interceptors.request.use(async (config) => {
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export default api;
