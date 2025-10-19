@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { Href, useRouter } from "expo-router";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const { width } = Dimensions.get('window');
@@ -13,7 +13,7 @@ export default function AppHome() {
       description: 'Discover delicious recipes',
       icon: '🍽️',
       color: '#e74c3c',
-      route: '/recipes' as const
+      route: '/recipes' as Href
     },
     {
       id: '2',
@@ -37,7 +37,7 @@ export default function AppHome() {
       description: 'Planner of meals',
       icon: '🗓️',
       color: '#2ecc71',
-      route: '/recipes' as const
+      route: '/mealplans' as Href
     },
     {
       id: '5',
@@ -94,7 +94,7 @@ export default function AppHome() {
           style={styles.logoutButton}
           onPress={() => router.replace("/(auth)/login")}
         >
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
       </View>
 
