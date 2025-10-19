@@ -1,11 +1,12 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
     RefreshControl,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
@@ -25,10 +26,16 @@ export default function IngredientsScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchIngredients = async () => {
+  const [query, setQuery] = useState<string>("");
+  const [searching, setSearching] = useState<boolean>(false);
+  const debounceRef = useRef<number | null>(null);
+
+  const fetchIngredients = async (q?: string) => {
     setError(null);
+    if (q) setSearching(true);
     try {
-      const res = await api.get("/ingredients"); // ajusta endpoint si hace falta
+      const res = await api.get("/ingredients", { params: q ? { query: q } : {} });
+      //console.log("fetchIngredients query:", q, "response:", res.data);
       const data = res.data?.data ?? res.data;
       setIngredients(Array.isArray(data) ? data : []);
     } catch (err: any) {
@@ -42,7 +49,23 @@ export default function IngredientsScreen() {
 
   useEffect(() => {
     fetchIngredients();
+    // cleanup on unmount
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
+
+  // debounce search and call server
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    // short-circuit: if empty query, fetch all (or keep previous list)
+    debounceRef.current = setTimeout(() => {
+      fetchIngredients(query.trim() ? query.trim() : undefined);
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -76,6 +99,20 @@ export default function IngredientsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Ingredientes</Text>
 
+        <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search ingredient..."
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        { (searching || refreshing) ? (
+          <ActivityIndicator style={{ marginLeft: 8 }} />
+        ) : null }
+      </View>
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <FlatList
@@ -91,8 +128,19 @@ export default function IngredientsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fa", padding: 16, paddingTop: 20 },
-  title: { fontSize: 24, fontWeight: "700", color: "#2c3e50", marginBottom: 12, textAlign: "center" },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#f8f9fa", 
+    padding: 16, 
+    paddingTop: 20 
+},
+  title: { 
+    fontSize: 24, 
+    fontWeight: "700", 
+    color: "#2c3e50", 
+    marginBottom: 12, 
+    textAlign: "center" 
+},
   row: {
     backgroundColor: "#fff",
     padding: 14,
@@ -101,10 +149,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#eef6fb",
   },
-  info: { flexDirection: "column" },
-  name: { fontSize: 16, fontWeight: "600", color: "#2c3e50" },
-  meta: { marginTop: 6, color: "#7f8c8d", fontSize: 13 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  empty: { textAlign: "center", color: "#7f8c8d" },
-  error: { color: "red", textAlign: "center", marginBottom: 12 },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e6eef8",
+  },
+  info: { 
+    flexDirection: "column" 
+},
+  name: { 
+    fontSize: 16, 
+    fontWeight: "600", 
+    color: "#2c3e50" 
+},
+  meta: { 
+    marginTop: 6, 
+    color: "#7f8c8d", 
+    fontSize: 13 
+},
+  center: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center" 
+},
+  empty: { 
+    textAlign: "center", 
+    color: "#7f8c8d" 
+},
+  error: { 
+    color: "red", 
+    textAlign: "center", 
+    marginBottom: 12 
+},
 });

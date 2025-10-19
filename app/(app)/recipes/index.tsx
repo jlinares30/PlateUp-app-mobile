@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import api from "../../../src/lib/api.js";
 
 interface Recipe {
@@ -16,20 +16,50 @@ export default function RecipesScreen() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const fetchRecipes = async () => {
+
+  const [query, setQuery] = useState<string>("");
+  const [searching, setSearching] = useState<boolean>(false);
+  const debounceRef = useRef<number | null>(null);
+
+  const fetchRecipes = async (q?: string) => {
+    if (q) setSearching(true);
     try {
-      const res = await api.get("/recipes");
-      setRecipes(res.data);
+      const res = await api.get("/recipes", { params: q ? { query: q } : {} });
+      const data = res.data?.data ?? res.data;
+      console.log("fetchRecipes query:", q, "response:", res.data);
+      setRecipes(Array.isArray(data) ? data : []);
     } catch (error) {
       setError("Error fetching recipes");
     } finally {
       setLoading(false);
     }
   };
+
+
+    useEffect(() => {
+      fetchRecipes();
+      // cleanup on unmount
+      return () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+      };
+    }, []);
   
-  useEffect(() => {
-    fetchRecipes();
-  }, []);
+    // debounce search and call server
+    useEffect(() => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      // short-circuit: if empty query, fetch all (or keep previous list)
+      debounceRef.current = setTimeout(() => {
+        fetchRecipes(query.trim() ? query.trim() : undefined);
+      }, 400);
+      return () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+      };
+    }, [query]);
+  
+    const onRefresh = () => {
+      setRefreshing(true);
+      fetchRecipes();
+    };
 
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
     <TouchableOpacity style={styles.recipeCard}
@@ -48,7 +78,22 @@ export default function RecipesScreen() {
   );
 
   return (
+    
     <View style={styles.container}>
+
+        <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Search recipe..."
+          value={query}
+          onChangeText={setQuery}
+          style={styles.searchInput}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        { (searching || refreshing) ? (
+          <ActivityIndicator style={{ marginLeft: 8 }} />
+        ) : null }
+      </View>
       <Text style={styles.headerTitle}>Recipe List</Text>
       <FlatList
         data={recipes}
@@ -67,6 +112,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     paddingHorizontal: 16,
     paddingTop: 20,
+  },
+    searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e6eef8",
   },
   headerTitle: {
     fontSize: 28,

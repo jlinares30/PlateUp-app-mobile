@@ -98,7 +98,6 @@ export default function RecipeDetailScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Button title="Back" onPress={() => router.back()} />
       {recipe.imageUrl ? (
         <Image source={{ uri: recipe.imageUrl }} style={styles.image} />
       ) : null}

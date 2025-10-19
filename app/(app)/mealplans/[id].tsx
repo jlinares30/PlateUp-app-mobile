@@ -70,8 +70,8 @@ export default function MealPlanDetail() {
   if (!id) {
     return (
       <View style={styles.center}>
-        <Text>ID no proporcionado.</Text>
-        <Button title="Volver" onPress={() => router.back()} />
+        <Text> ID not provided.</Text>
+        <Button title="Back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -88,8 +88,8 @@ export default function MealPlanDetail() {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{error}</Text>
-        <Button title="Reintentar" onPress={() => fetchMealPlan(id)} />
-        <Button title="Volver" onPress={() => router.back()} />
+        <Button title="Retry" onPress={() => fetchMealPlan(id)} />
+        <Button title="Back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -97,8 +97,8 @@ export default function MealPlanDetail() {
   if (!mealPlan) {
     return (
       <View style={styles.center}>
-        <Text>No se encontró el plan de comidas.</Text>
-        <Button title="Volver" onPress={() => router.back()} />
+        <Text>Not found meal plan.</Text>
+        <Button title="Back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -109,8 +109,6 @@ export default function MealPlanDetail() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Button title="Volver" onPress={() => router.back()} />
-
       {mealPlan.imageUrl ? (
         <Image source={{ uri: mealPlan.imageUrl }} style={styles.image} />
       ) : null}
@@ -118,7 +116,6 @@ export default function MealPlanDetail() {
       <Text style={styles.title}>{mealPlan.title}</Text>
       {mealPlan.description ? <Text style={styles.description}>{mealPlan.description}</Text> : null}
 
-      {/* Renderizamos los días del plan */}
       {mealPlan.days && mealPlan.days.length > 0 ? (
         mealPlan.days.map((day) => (
           <View key={day._id} style={styles.daySection}>

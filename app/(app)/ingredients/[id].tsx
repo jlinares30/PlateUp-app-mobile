@@ -49,7 +49,7 @@ export default function IngredientDetail() {
     return (
       <View style={styles.center}>
         <Text>ID no proporcionado.</Text>
-        <Button title="Volver" onPress={() => router.back()} />
+        <Button title="Back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -66,8 +66,8 @@ export default function IngredientDetail() {
     return (
       <View style={styles.center}>
         <Text style={styles.error}>{error}</Text>
-        <Button title="Reintentar" onPress={() => fetchIngredient(id)} />
-        <Button title="Volver" onPress={() => router.back()} />
+        <Button title="Retry" onPress={() => fetchIngredient(id)} />
+        <Button title="Back" onPress={() => router.back()} />
       </View>
     );
   }
@@ -76,25 +76,24 @@ export default function IngredientDetail() {
     return (
       <View style={styles.center}>
         <Text>No se encontró el ingrediente.</Text>
-        <Button title="Volver" onPress={() => router.back()} />
+        <Button title="Back" onPress={() => router.back()} />
       </View>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Button title="Volver" onPress={() => router.back()} />
 
       <Text style={styles.title}>{ingredient.name}</Text>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Categoría</Text>
-        <Text style={styles.value}>{ingredient.category ?? "Sin categoría"}</Text>
+        <Text style={styles.label}>Category</Text>
+        <Text style={styles.value}>{ingredient.category ?? "No category"}</Text>
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Unidad</Text>
-        <Text style={styles.value}>{ingredient.unit ?? "unidad"}</Text>
+        <Text style={styles.label}>Unit</Text>
+        <Text style={styles.value}>{ingredient.unit ?? "unit"}</Text>
       </View>
 
       <View style={styles.row}>

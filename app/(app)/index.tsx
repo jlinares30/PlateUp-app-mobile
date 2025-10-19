@@ -15,14 +15,14 @@ export default function AppHome() {
       color: '#e74c3c',
       route: '/recipes' as Href
     },
-    {
+/*     {
       id: '2',
       title: 'Favorites',
       description: 'Your favorite recipes',
       icon: '❤️',
       color: '#e67e22',
       route: '/recipes' as Href
-    },
+    }, 
     {
       id: '3',
       title: 'Categories',
@@ -30,7 +30,7 @@ export default function AppHome() {
       icon: '📂',
       color: '#3498db',
       route: '/recipes' as Href
-    },
+    },*/
     {
       id: '4',
       title: 'Meal Plans',
@@ -39,14 +39,14 @@ export default function AppHome() {
       color: '#2ecc71',
       route: '/mealplans' as Href
     },
-    {
+/*     {
       id: '5',
       title: 'Shopping List',
       description: 'Ingredients to buy',
       icon: '🛒',
       color: '#e74c3c',
       route: '/recipes' as Href
-    },
+    }, */
     {
       id: '6',
       title: 'Ingredients',
@@ -55,14 +55,14 @@ export default function AppHome() {
       color: '#f1c40f',
       route: '/ingredients' as Href
     },
-    {
+/*     {
       id: '7',
       title: 'My Profile',
       description: 'Configure your account',
       icon: '👤',
       color: '#9b59b6',
       route: '/recipes' as Href
-    }
+    } */
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
