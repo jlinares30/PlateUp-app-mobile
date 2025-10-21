@@ -22,9 +22,9 @@ export const useAuthStore = create(persist((set) => ({
       return false;
     }
   },
-  register: async (email, password) => {
+  register: async (name, email, password) => {
     try {
-      const response = await api.post("/auth/register", { email, password });
+      const response = await api.post("/auth/register", {name, email, password });
       set({ user: response.data });
     } catch (error) {
       set({ error: error.response?.data?.message || "Registration failed", loading: false });

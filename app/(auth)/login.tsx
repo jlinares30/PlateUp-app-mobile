@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useAuthStore } from "../../src/store/useAuth.js";
 
 export default function LoginScreen() {
@@ -21,9 +21,13 @@ export default function LoginScreen() {
     }
   };
 
+  const handleSignup = async () => {
+    router.replace("./register");
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Log In</Text>
       <TextInput
         placeholder="Email"
         style={styles.input}
@@ -37,8 +41,15 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
-      <View style={styles.button}>
-        <Button title="Login" onPress={handleLogin} />
+      <View style={styles.buttonContainer}>
+        <Button title="Log in" onPress={handleLogin} />
+      </View>
+
+      <View style={styles.redirectContainer}>
+        <Text style={styles.redirectText}>Dont have an account? </Text>
+        <TouchableOpacity onPress={handleSignup}>
+          <Text style={styles.redirectLink}>Sign up</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -61,16 +72,31 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     height: 40,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffffff',
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 16,
     paddingHorizontal: 10,
   },
-  button: {
+  buttonContainer: {
     width: '50%',
     marginTop: 10,
+  },
+  redirectContainer: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  redirectText: {
+    color: 'black',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  redirectLink: {
+    color: '#abbef3ff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 10,
   },
 });
 
