@@ -11,8 +11,8 @@ export const useAuthStore = create(persist((set) => ({
     try {
       set({ loading: true });
       const response = await api.post("/auth/login", { email, password });
-      console.log("User data:", response.data);
       set({ user: response.data.user });
+      console.log("User data:", response.data.user);
       set({ token: response.data.token, loading: false });
         console.log("response.data.token:", response.data.token);
       return true;

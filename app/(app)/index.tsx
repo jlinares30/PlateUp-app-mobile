@@ -1,10 +1,16 @@
+import { useAuthStore } from "@/src/store/useAuth";
 import { Href, useRouter } from "expo-router";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
 const { width } = Dimensions.get('window');
 
 export default function AppHome() {
   const router = useRouter();
+  const { logout, user } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.replace("/(auth)/login");
+  }
 
   const menuItems = [
     {
@@ -87,12 +93,12 @@ export default function AppHome() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>¡Hello!</Text>
+          <Text style={styles.welcomeText}>¡Hello {user?.name}!</Text>
           <Text style={styles.subtitleText}>What are we cooking today?</Text>
         </View>
         <TouchableOpacity 
           style={styles.logoutButton}
-          onPress={() => router.replace("/(auth)/login")}
+          onPress={handleLogout}
         >
           <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
@@ -235,6 +241,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    marginTop: 5,
   },
   iconText: {
     fontSize: 24,

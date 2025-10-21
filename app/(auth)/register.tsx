@@ -13,8 +13,8 @@ export default function LoginScreen() {
   const handleSignup = async () => {
     const success = await register(name, email, password);
     console.log(name, email, password);
-    if (success) {
-      router.replace("./login");
+    if (success !== null) {
+      router.push("./login");
         console.log("Login successful");
     } else {
         console.log(success);
