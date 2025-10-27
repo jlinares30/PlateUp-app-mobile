@@ -73,6 +73,11 @@ export default function RecipesScreen() {
     useEffect(() => {
       fetchAllIngredients();
       console.log(selectedIngredients);
+      if (selectedIngredients.length > 0) {
+        fetchRecipesByIngredients();
+      } else {
+        fetchRecipes(); // if no ingredients, fetch all recipes again
+      }
     }, [selectedIngredients]);
   
     // debounce search and call server
@@ -113,6 +118,7 @@ export default function RecipesScreen() {
     }
     setIngredientQuery("");
     setFiltered([]);
+    fetchRecipesByIngredients();
   };
 
   const removeIngredient = (id: string) => {
@@ -122,9 +128,9 @@ export default function RecipesScreen() {
   const fetchRecipesByIngredients = async () => {
   try {
     const res = await api.post("/recipes/by-ingredients", {
-      ingredients: selectedIngredients.map(i => i._id),
+      ingredientIds: selectedIngredients.map(i => i._id),
     });
-    console.log("fetchRecipesByIngredients response:", res.data);
+    console.log("fetchRecipesByIngredients request:", selectedIngredients.map(i => i._id), "response:", res.data);
     setRecipes(res.data);
   } catch (err) {
     console.error(err);
@@ -144,7 +150,9 @@ export default function RecipesScreen() {
         </View>
         <Text style={styles.recipeDescription}>{item.description}</Text>
       </View>
-      <Text>{Math.round(item.matchPercentage)}% de coincidencia</Text>
+      {item.matchPercentage !== undefined && (
+        <Text>{item.matchPercentage}% de coincidencia</Text>
+      )}
 
     </TouchableOpacity>
     
