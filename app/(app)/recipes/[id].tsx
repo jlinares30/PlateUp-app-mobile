@@ -1,13 +1,13 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Button,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Button,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import api from "../../../src/lib/api";
 
@@ -117,10 +117,9 @@ export default function RecipeDetailScreen() {
       {recipe.steps && recipe.steps.length > 0 && (
         <>
           <Text style={styles.sectionTitle}>Preparación</Text>
-          {recipe.ingredients?.map((ing, idx) => (
+          {recipe.steps?.map((step, idx) => (
             <Text key={idx} style={styles.listItem}>
-            • {ing.quantity} {ing.unit} de{" "}
-            {typeof ing.ingredient === "object" ? ing.ingredient.name : ing.ingredient}
+              • {step}
         </Text>
         ))}
         </>
