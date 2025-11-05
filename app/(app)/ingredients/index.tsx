@@ -2,14 +2,15 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   FlatList,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
 
 interface Ingredient {
@@ -19,7 +20,12 @@ interface Ingredient {
   unit?: string;
 }
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const THRESHOLD = SCREEN_WIDTH * 0.25;
+
 export default function IngredientsScreen() {
+
+  
   const router = useRouter();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -72,19 +78,35 @@ export default function IngredientsScreen() {
     fetchIngredients();
   };
 
+  const handleAddToShoppingList = (item: Ingredient) => {
+  console.log("ADD TO SHOPPING LIST:", item.name);
+  // TODO: add to your state or DB
+  };
+
   const renderItem = ({ item }: { item: Ingredient }) => (
-    <TouchableOpacity
-      style={styles.row}
-      onPress={() => router.push(`./ingredients/${item._id}`)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.info}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.meta}>
-          {item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <SwipeableIngredientItem 
+    item={item} 
+    onPress={() => router.push(`./ingredients/${item._id}`)} 
+    onAdd={handleAddToShoppingList} 
+    />
+    
+
+    // <GestureDetector gesture={pan}>
+    //   <Animated.View style={[styles.row, animatedStyle]}>
+    //     <TouchableOpacity
+    //       style={styles.row}
+    //       onPress={() => router.push(`./ingredients/${item._id}`)}
+    //       activeOpacity={0.8}
+    //     >
+    //       <View style={styles.info}>
+    //         <Text style={styles.name}>{item.name}</Text>
+    //         <Text style={styles.meta}>
+    //           {item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}
+    //         </Text>
+    //       </View>
+    //     </TouchableOpacity>
+    //   </Animated.View>
+    // </GestureDetector>
   );
 
   if (loading) {
@@ -141,14 +163,6 @@ const styles = StyleSheet.create({
     marginBottom: 12, 
     textAlign: "center" 
 },
-  row: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#eef6fb",
-  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -164,19 +178,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e6eef8",
   },
-  info: { 
-    flexDirection: "column" 
-},
-  name: { 
-    fontSize: 16, 
-    fontWeight: "600", 
-    color: "#2c3e50" 
-},
-  meta: { 
-    marginTop: 6, 
-    color: "#7f8c8d", 
-    fontSize: 13 
-},
   center: { 
     flex: 1, 
     justifyContent: "center", 
@@ -190,5 +191,5 @@ const styles = StyleSheet.create({
     color: "red", 
     textAlign: "center", 
     marginBottom: 12 
-},
+}
 });

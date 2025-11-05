@@ -45,14 +45,14 @@ export default function AppHome() {
       color: '#2ecc71',
       route: '/mealplans' as Href
     },
-/*     {
+    {
       id: '5',
       title: 'Shopping List',
       description: 'Ingredients to buy',
       icon: '🛒',
       color: '#e74c3c',
-      route: '/recipes' as Href
-    }, */
+      route: '/shopping' as Href
+    },
     {
       id: '6',
       title: 'Ingredients',
