@@ -74,17 +74,52 @@ export default function RecipesScreen() {
     }
   };
 
-  const fetchRecipes = async (q?: string) => {
-    if (q) setSearching(true);
+  /* ❄️ Unified Recipe Loading Logic ❄️ */
+  const loadRecipes = async (currentQuery: string, currentIngredients: Ingredient[]) => {
+    // Determine if we are "searching" (updating list) vs "initial loading"
+    if (!loading) setSearching(true);
+    setError(null);
+
     try {
-      const res = await api.get("/recipes", { params: q ? { query: q } : {} });
-      const data = res.data?.data ?? res.data;
-      //console.log("fetchRecipes query:", q, "response:", res.data);
-      setRecipes(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setError("Error fetching recipes");
+      let data: Recipe[] = [];
+
+      if (currentIngredients.length > 0) {
+        // 1. Fetch by ingredients
+        const res = await api.post("/recipes/by-ingredients", {
+          ingredientIds: currentIngredients.map(i => i._id),
+        });
+        // Normalize response
+        data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
+
+        // 2. Client-side Text Filter (if query exists)
+        if (currentQuery.trim()) {
+          const lowerQ = currentQuery.toLowerCase();
+          data = data.filter(r => r.title.toLowerCase().includes(lowerQ));
+        }
+
+        // 3. Client-side Sort by Match Percentage DESC
+        data.sort((a, b) => {
+          const matchA = a.matchPercentage ?? 0;
+          const matchB = b.matchPercentage ?? 0;
+          return matchB - matchA; // Descending
+        });
+
+      } else {
+        // 4. Fetch all / Search by text
+        const params = currentQuery.trim() ? { query: currentQuery.trim() } : {};
+        const res = await api.get("/recipes", { params });
+        data = res.data?.data ?? res.data;
+        if (!Array.isArray(data)) data = [];
+      }
+
+      setRecipes(data);
+    } catch (err: any) {
+      console.error("loadRecipes error:", err);
+      setError("No se pudieron cargar las recetas.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      setSearching(false);
     }
   };
 
@@ -92,50 +127,35 @@ export default function RecipesScreen() {
     try {
       const res = await api.get("/ingredients");
       const data = res.data?.data ?? res.data;
-      console.log("fetchIngredients response:", res.data);
       setAllIngredients(Array.isArray(data) ? data : []);
     } catch (error) {
-      setError("Error fetching ingredients");
-    } finally {
-      setLoading(false);
+      console.error("Error fetching ingredients", error);
     }
   };
 
+  // 🔹 Effect: Initial Mount (Fetch Ingredients only)
   useEffect(() => {
-    fetchRecipes();
     fetchAllIngredients();
-    // cleanup on unmount
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    // The main effect below will handle the initial recipe fetch because vars are initiated
   }, []);
 
-  useEffect(() => {
-    fetchAllIngredients();
-    console.log(selectedIngredients);
-    if (selectedIngredients.length > 0) {
-      fetchRecipesByIngredients();
-    } else {
-      fetchRecipes(); // if no ingredients, fetch all recipes again
-    }
-  }, [selectedIngredients]);
-
-  // debounce search and call server
+  // 🔹 Effect: Unified Search & Filter (Debounced)
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    // short-circuit: if empty query, fetch all (or keep previous list)
+
     debounceRef.current = setTimeout(() => {
-      fetchRecipes(recipeQuery.trim() ? recipeQuery.trim() : undefined);
-    }, 400);
+      loadRecipes(recipeQuery, selectedIngredients);
+    }, 400); // 400ms debounce
+
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-
-  }, [recipeQuery]);
+  }, [recipeQuery, selectedIngredients]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchRecipes();
+    // Force reload with current state
+    loadRecipes(recipeQuery, selectedIngredients);
   };
 
   useEffect(() => {
@@ -151,30 +171,19 @@ export default function RecipesScreen() {
     setFiltered(matches.slice(0, 6));
   }, [ingredientQuery, allIngredients]);
 
-  // 🔹 Agregar ingrediente seleccionado
+  // 🔹 Ingredient Selection Helpers
   const addIngredient = (ingredient: Ingredient) => {
     if (!selectedIngredients.some((i) => i._id === ingredient._id)) {
       setSelectedIngredients([...selectedIngredients, ingredient]);
     }
     setIngredientQuery("");
     setFiltered([]);
-    fetchRecipesByIngredients();
+    // Effect will trigger reload via dependency
   };
 
   const removeIngredient = (id: string) => {
     setSelectedIngredients(selectedIngredients.filter((i) => i._id !== id));
-  };
-
-  const fetchRecipesByIngredients = async () => {
-    try {
-      const res = await api.post("/recipes/by-ingredients", {
-        ingredientIds: selectedIngredients.map(i => i._id),
-      });
-      console.log("fetchRecipesByIngredients request:", selectedIngredients.map(i => i._id), "response:", res.data);
-      setRecipes(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    // Effect will trigger reload via dependency
   };
 
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
