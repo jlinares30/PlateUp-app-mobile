@@ -1,74 +1,27 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Button,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Button,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import api from "../../../src/lib/api";
-
-type Ingredient = {
-  _id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-};
-
-type CartItem = Ingredient & { quantity: number };
-
-const STORAGE_KEY = "@shopping_cart";
+import { CartItem, useCartStore } from "../../../src/store/useCartStore";
 
 export default function ShoppingCart() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[] | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+
+  const cart = useCartStore((state) => state.cart);
+  const changeQuantity = useCartStore((state) => state.changeQuantity);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const clearCartAction = useCartStore((state) => state.clearCart);
+
   const [busy, setBusy] = useState<boolean>(false);
-
-  useEffect(() => {
-    loadCart();
-  }, []);
-
-  const loadCart = async () => {
-    try {
-      setLoading(true);
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      setCart(raw ? (JSON.parse(raw) as CartItem[]) : []);
-    } catch (err) {
-      console.error("loadCart:", err);
-      setCart([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveCart = async (items: CartItem[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-      setCart(items);
-    } catch (err) {
-      console.error("saveCart:", err);
-    }
-  };
-
-  const changeQty = (id: string, delta: number) => {
-    if (!cart) return;
-    const next = cart
-      .map((it) => (it._id === id ? { ...it, quantity: Math.max(1, it.quantity + delta) } : it))
-      .filter(Boolean);
-    saveCart(next);
-  };
-
-  const removeItem = (id: string) => {
-    if (!cart) return;
-    const next = cart.filter((it) => it._id !== id);
-    saveCart(next);
-  };
 
   const clearCart = () => {
     Alert.alert("Vaciar carrito", "¿Deseas vaciar el carrito?", [
@@ -77,7 +30,7 @@ export default function ShoppingCart() {
         text: "Vaciar",
         style: "destructive",
         onPress: async () => {
-          await saveCart([]);
+          clearCartAction();
         },
       },
     ]);
@@ -93,7 +46,7 @@ export default function ShoppingCart() {
       // Attempt to send shopping list to backend (adjust endpoint if needed)
       await api.post("/shopping-lists", { items: cart.map(({ _id, quantity }) => ({ ingredient: _id, quantity })) });
       Alert.alert("Lista enviada", "Tu lista de compra fue enviada correctamente.");
-      await saveCart([]);
+      clearCartAction();
     } catch (err: any) {
       console.error("checkout:", err);
       Alert.alert("Error", err?.response?.data?.message ?? "No se pudo enviar la lista. Se guardará localmente.");
@@ -114,11 +67,11 @@ export default function ShoppingCart() {
       </View>
 
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.qtyBtn} onPress={() => changeQty(item._id, -1)}>
+        <TouchableOpacity style={styles.qtyBtn} onPress={() => changeQuantity(item._id, -1)}>
           <Text style={styles.qtyBtnText}>−</Text>
         </TouchableOpacity>
         <Text style={styles.qtyText}>{item.quantity}</Text>
-        <TouchableOpacity style={styles.qtyBtn} onPress={() => changeQty(item._id, 1)}>
+        <TouchableOpacity style={styles.qtyBtn} onPress={() => changeQuantity(item._id, 1)}>
           <Text style={styles.qtyBtnText}>+</Text>
         </TouchableOpacity>
 
@@ -129,7 +82,7 @@ export default function ShoppingCart() {
     </View>
   );
 
-  if (loading || cart === null) {
+  if (cart === null) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />

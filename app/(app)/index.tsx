@@ -21,22 +21,22 @@ export default function AppHome() {
       color: '#e74c3c',
       route: '/recipes' as Href
     },
-/*     {
-      id: '2',
-      title: 'Favorites',
-      description: 'Your favorite recipes',
-      icon: '❤️',
-      color: '#e67e22',
-      route: '/recipes' as Href
-    }, 
-    {
-      id: '3',
-      title: 'Categories',
-      description: 'Explore by categories',
-      icon: '📂',
-      color: '#3498db',
-      route: '/recipes' as Href
-    },*/
+    /*     {
+          id: '2',
+          title: 'Favorites',
+          description: 'Your favorite recipes',
+          icon: '❤️',
+          color: '#e67e22',
+          route: '/recipes' as Href
+        }, 
+        {
+          id: '3',
+          title: 'Categories',
+          description: 'Explore by categories',
+          icon: '📂',
+          color: '#3498db',
+          route: '/recipes' as Href
+        },*/
     {
       id: '4',
       title: 'Meal Plans',
@@ -61,14 +61,14 @@ export default function AppHome() {
       color: '#f1c40f',
       route: '/ingredients' as Href
     },
-/*     {
-      id: '7',
-      title: 'My Profile',
-      description: 'Configure your account',
-      icon: '👤',
-      color: '#9b59b6',
-      route: '/recipes' as Href
-    } */
+    /*     {
+          id: '7',
+          title: 'My Profile',
+          description: 'Configure your account',
+          icon: '👤',
+          color: '#9b59b6',
+          route: '/recipes' as Href
+        } */
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
@@ -96,7 +96,7 @@ export default function AppHome() {
           <Text style={styles.welcomeText}>¡Hello {user?.name}!</Text>
           <Text style={styles.subtitleText}>What are we cooking today?</Text>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
         >

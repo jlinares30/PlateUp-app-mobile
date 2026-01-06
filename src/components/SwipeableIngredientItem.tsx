@@ -1,10 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const THRESHOLD = SCREEN_WIDTH * 0.25;
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import SwipeableRow from "./SwipeableRow";
 
 export interface Ingredient {
   _id: string;
@@ -20,58 +17,55 @@ type Props = {
 };
 
 export default function SwipeableIngredientItem({ item, onPress, onAdd }: Props) {
-  const translateX = useSharedValue(0);
-
-  const pan = Gesture.Pan()
-    .onUpdate((e) => {
-      if (e.translationX > 0) translateX.value = e.translationX;
-    })
-    .onEnd(() => {
-      if (translateX.value > THRESHOLD) {
-        translateX.value = withTiming(SCREEN_WIDTH, { duration: 250 }, () => {
-          if (onAdd) runOnJS(onAdd)(item);
-          translateX.value = withSpring(0);
-        });
-      } else {
-        translateX.value = withSpring(0);
-      }
-    });
-
-  const animatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(translateX.value, [0, THRESHOLD], [1, 0.6]);
-    return {
-      transform: [{ translateX: translateX.value }],
-      opacity,
-    };
-  });
-
   return (
-    <GestureHandlerRootView>
-      <GestureDetector gesture={pan}>
-        <Animated.View style={[styles.row, animatedStyle]}>
-          <TouchableOpacity style={styles.touch} onPress={() => onPress?.()} activeOpacity={0.8}>
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>{item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}</Text>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      </GestureDetector>
-    </GestureHandlerRootView>
+    <SwipeableRow onSwipe={() => onAdd?.(item)} style={styles.container}>
+      <TouchableOpacity style={styles.row} onPress={() => onPress?.()} activeOpacity={0.8}>
+        <View style={styles.info}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.meta}>
+            {item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#cbd5e1" style={styles.arrow} />
+      </TouchableOpacity>
+    </SwipeableRow>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    marginBottom: 10,
+  },
   row: {
     backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#eef6fb",
+    shadowColor: "#e6eef8",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  touch: { flex: 1 },
-  info: { flexDirection: "column" },
-  name: { fontSize: 16, fontWeight: "600", color: "#2c3e50" },
-  meta: { marginTop: 6, color: "#7f8c8d", fontSize: 13 },
+  info: {
+    flexDirection: "column"
+  },
+  name: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#2c3e50"
+  },
+  meta: {
+    marginTop: 4,
+    color: "#94a3b8",
+    fontSize: 14,
+    fontWeight: '500'
+  },
+  arrow: {
+    marginLeft: 10
+  }
 });

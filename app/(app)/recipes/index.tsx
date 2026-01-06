@@ -1,7 +1,9 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import SwipeableRow from "../../../src/components/SwipeableRow";
 import api from "../../../src/lib/api.js";
+import { useCartStore } from "../../../src/store/useCartStore";
 
 interface Recipe {
   _id: string;
@@ -33,6 +35,44 @@ export default function RecipesScreen() {
   const [ingredientQuery, setIngredientQuery] = useState<string>("");
   const [searching, setSearching] = useState<boolean>(false);
   const debounceRef = useRef<number | null>(null);
+
+  const addItem = useCartStore((state) => state.addItem);
+
+  const handleSwipeRecipe = async (recipe: Recipe) => {
+    try {
+      // 1. Fetch full details to get ingredients
+      // NOTE: If the list endpoint included ingredients, we could skip this.
+      const res = await api.get(`/recipes/${recipe._id}`);
+      const fullRecipe = res.data?.data ?? res.data;
+
+      if (!fullRecipe.ingredients || fullRecipe.ingredients.length === 0) {
+        Alert.alert("Info", "Esta receta no tiene ingredientes listados.");
+        return;
+      }
+
+      // 2. Add each ingredient to cart
+      let addedCount = 0;
+      fullRecipe.ingredients.forEach((ingObj: any) => {
+        // Handle populated vs unpopulated ingredient
+        const ingData = typeof ingObj.ingredient === 'object' ? ingObj.ingredient : null;
+        if (ingData) {
+          addItem({
+            _id: ingData._id,
+            name: ingData.name,
+            category: ingData.category,
+            unit: ingObj.unit // Use recipe unit or ingredient unit?
+          });
+          addedCount++;
+        }
+      });
+
+      Alert.alert("🎉 Éxito", `Se agregaron ${addedCount} ingredientes de "${recipe.title}" a la lista.`);
+
+    } catch (err) {
+      console.error("Error adding recipe ingredients:", err);
+      Alert.alert("Error", "No se pudieron agregar los ingredientes.");
+    }
+  };
 
   const fetchRecipes = async (q?: string) => {
     if (q) setSearching(true);
@@ -66,39 +106,39 @@ export default function RecipesScreen() {
     fetchAllIngredients();
     // cleanup on unmount
     return () => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-      };
-    }, []);
-
-    useEffect(() => {
-      fetchAllIngredients();
-      console.log(selectedIngredients);
-      if (selectedIngredients.length > 0) {
-        fetchRecipesByIngredients();
-      } else {
-        fetchRecipes(); // if no ingredients, fetch all recipes again
-      }
-    }, [selectedIngredients]);
-  
-    // debounce search and call server
-    useEffect(() => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      // short-circuit: if empty query, fetch all (or keep previous list)
-      debounceRef.current = setTimeout(() => {
-        fetchRecipes(recipeQuery.trim() ? recipeQuery.trim() : undefined);
-      }, 400);
-      return () => {
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-      };
-      
-    }, [recipeQuery]);
-  
-    const onRefresh = () => {
-      setRefreshing(true);
-      fetchRecipes();
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchAllIngredients();
+    console.log(selectedIngredients);
+    if (selectedIngredients.length > 0) {
+      fetchRecipesByIngredients();
+    } else {
+      fetchRecipes(); // if no ingredients, fetch all recipes again
+    }
+  }, [selectedIngredients]);
+
+  // debounce search and call server
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    // short-circuit: if empty query, fetch all (or keep previous list)
+    debounceRef.current = setTimeout(() => {
+      fetchRecipes(recipeQuery.trim() ? recipeQuery.trim() : undefined);
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
     };
 
-    useEffect(() => {
+  }, [recipeQuery]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchRecipes();
+  };
+
+  useEffect(() => {
     if (!ingredientQuery.trim()) {
       setFiltered([]);
       return;
@@ -108,7 +148,7 @@ export default function RecipesScreen() {
     const matches = allIngredients.filter((i) =>
       i.name.toLowerCase().includes(lower)
     );
-    setFiltered(matches.slice(0, 6)); 
+    setFiltered(matches.slice(0, 6));
   }, [ingredientQuery, allIngredients]);
 
   // 🔹 Agregar ingrediente seleccionado
@@ -126,89 +166,97 @@ export default function RecipesScreen() {
   };
 
   const fetchRecipesByIngredients = async () => {
-  try {
-    const res = await api.post("/recipes/by-ingredients", {
-      ingredientIds: selectedIngredients.map(i => i._id),
-    });
-    console.log("fetchRecipesByIngredients request:", selectedIngredients.map(i => i._id), "response:", res.data);
-    setRecipes(res.data);
-  } catch (err) {
-    console.error(err);
-  }
-};
+    try {
+      const res = await api.post("/recipes/by-ingredients", {
+        ingredientIds: selectedIngredients.map(i => i._id),
+      });
+      console.log("fetchRecipesByIngredients request:", selectedIngredients.map(i => i._id), "response:", res.data);
+      setRecipes(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const renderRecipeItem = ({ item }: { item: Recipe }) => (
-    <TouchableOpacity style={styles.recipeCard}
-      onPress={() => router.push(`/recipes/${item._id}`)}
+    <SwipeableRow
+      onSwipe={() => handleSwipeRecipe(item)}
+      style={{ marginBottom: 16 }}
+      actionLabel="Agregar Todo"
     >
-      <View style={styles.recipeContent}>
-        <View style={styles.recipeHeader}>
-          <Text style={styles.recipeTitle}>{item.title}</Text>
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{item.time}</Text>
+      <TouchableOpacity style={styles.recipeCard}
+        onPress={() => router.push(`/recipes/${item._id}`)}
+        activeOpacity={0.9}
+      >
+        <View style={styles.recipeContent}>
+          <View style={styles.recipeHeader}>
+            <Text style={styles.recipeTitle}>{item.title}</Text>
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeText}>{item.time}</Text>
+            </View>
           </View>
+          <Text style={styles.recipeDescription}>{item.description}</Text>
         </View>
-        <Text style={styles.recipeDescription}>{item.description}</Text>
-      </View>
-      {item.matchPercentage !== undefined && (
-        <Text>{item.matchPercentage}% de coincidencia</Text>
-      )}
+        {item.matchPercentage !== undefined && (
+          <View style={styles.matchBadge}>
+            <Text style={styles.matchText}>{item.matchPercentage}% coincidencia</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </SwipeableRow>
 
-    </TouchableOpacity>
-    
   );
 
   return (
-    
+
     <View style={styles.container}>
       <View style={styles.ingredientSelector}>
 
-      <Text style={styles.title}>Select Ingredients</Text>
+        <Text style={styles.title}>Select Ingredients</Text>
 
-      {loading ? (
-        <ActivityIndicator size="large" />
-      ) : (
-        <>
-          <TextInput
-            value={ingredientQuery}
-            onChangeText={setIngredientQuery}
-            placeholder="Type an ingredient..."
-            style={styles.input}
-          />
+        {loading ? (
+          <ActivityIndicator size="large" />
+        ) : (
+          <>
+            <TextInput
+              value={ingredientQuery}
+              onChangeText={setIngredientQuery}
+              placeholder="Type an ingredient..."
+              style={styles.input}
+            />
 
-          {/* 🔹 Suggestions */}
-          {filtered.length > 0 && (
-            <View style={styles.suggestions}>
-              {filtered.map((item) => (
+            {/* 🔹 Suggestions */}
+            {filtered.length > 0 && (
+              <View style={styles.suggestions}>
+                {filtered.map((item) => (
+                  <TouchableOpacity
+                    key={item._id}
+                    onPress={() => addIngredient(item)}
+                    style={styles.suggestionItem}
+                  >
+                    <Text>{item.name}</Text>
+                    <Text style={styles.category}>{item.category ?? "—"}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* 🔹 Selected Ingredients */}
+            <View style={styles.selectedContainer}>
+              {selectedIngredients.map((item) => (
                 <TouchableOpacity
                   key={item._id}
-                  onPress={() => addIngredient(item)}
-                  style={styles.suggestionItem}
+                  style={styles.chip}
+                  onPress={() => removeIngredient(item._id)}
                 >
-                  <Text>{item.name}</Text>
-                  <Text style={styles.category}>{item.category ?? "—"}</Text>
+                  <Text style={styles.chipText}>{item.name} ✕</Text>
                 </TouchableOpacity>
               ))}
             </View>
-          )}
-
-          {/* 🔹 Selected Ingredients */}
-          <View style={styles.selectedContainer}>
-            {selectedIngredients.map((item) => (
-              <TouchableOpacity
-                key={item._id}
-                style={styles.chip}
-                onPress={() => removeIngredient(item._id)}
-              >
-                <Text style={styles.chipText}>{item.name} ✕</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </>
-      )}
+          </>
+        )}
       </View>
 
-        <View style={styles.searchContainer}>
+      <View style={styles.searchContainer}>
         <TextInput
           placeholder="Search recipe..."
           value={recipeQuery}
@@ -217,9 +265,9 @@ export default function RecipesScreen() {
           returnKeyType="search"
           clearButtonMode="while-editing"
         />
-        { (searching || refreshing) ? (
+        {(searching || refreshing) ? (
           <ActivityIndicator style={{ marginLeft: 8 }} />
-        ) : null }
+        ) : null}
       </View>
       <FlatList
         data={recipes}
@@ -242,7 +290,7 @@ const styles = StyleSheet.create({
   ingredientSelector: {
     marginBottom: 16,
   },
-title: { fontSize: 20, fontWeight: "600", marginBottom: 12, color: "#2c3e50" },
+  title: { fontSize: 20, fontWeight: "600", marginBottom: 12, color: "#2c3e50" },
   input: {
     backgroundColor: "#fff",
     padding: 10,
@@ -307,15 +355,17 @@ title: { fontSize: 20, fontWeight: "600", marginBottom: 12, color: "#2c3e50" },
   recipeCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     elevation: 3,
+    // marginBottom handled by wrapper
+  },
+  matchBadge: {
+    paddingHorizontal: 16,
+    paddingBottom: 12
+  },
+  matchText: {
+    color: '#27ae60',
+    fontWeight: '600',
+    fontSize: 12
   },
   recipeContent: {
     padding: 16,

@@ -1,12 +1,12 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Button,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  ActivityIndicator,
+  Button,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import api from "../../../src/lib/api";
 
@@ -96,17 +96,6 @@ export default function IngredientDetail() {
         <Text style={styles.value}>{ingredient.unit ?? "unit"}</Text>
       </View>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>ID</Text>
-        <Text style={styles.value}>{ingredient._id}</Text>
-      </View>
-
-      {typeof ingredient.__v !== "undefined" && (
-        <View style={styles.row}>
-          <Text style={styles.label}>__v</Text>
-          <Text style={styles.value}>{String(ingredient.__v)}</Text>
-        </View>
-      )}
     </ScrollView>
   );
 }

@@ -1,8 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
+  ActivityIndicator, Alert, Dimensions,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -12,20 +11,13 @@ import {
 } from "react-native";
 import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
-
-interface Ingredient {
-  _id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-}
+import { Ingredient, useCartStore } from "../../../src/store/useCartStore";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const THRESHOLD = SCREEN_WIDTH * 0.25;
 
 export default function IngredientsScreen() {
 
-  
   const router = useRouter();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -35,6 +27,8 @@ export default function IngredientsScreen() {
   const [query, setQuery] = useState<string>("");
   const [searching, setSearching] = useState<boolean>(false);
   const debounceRef = useRef<number | null>(null);
+
+  const addItem = useCartStore((state) => state.addItem);
 
   const fetchIngredients = async (q?: string) => {
     setError(null);
@@ -79,34 +73,16 @@ export default function IngredientsScreen() {
   };
 
   const handleAddToShoppingList = (item: Ingredient) => {
-  console.log("ADD TO SHOPPING LIST:", item.name);
-  // TODO: add to your state or DB
+    addItem(item);
+    Alert.alert("Añadido", `${item.name} se agregó a tu lista.`);
   };
 
   const renderItem = ({ item }: { item: Ingredient }) => (
-    <SwipeableIngredientItem 
-    item={item} 
-    onPress={() => router.push(`./ingredients/${item._id}`)} 
-    onAdd={handleAddToShoppingList} 
+    <SwipeableIngredientItem
+      item={item}
+      onPress={() => router.push(`./ingredients/${item._id}`)}
+      onAdd={handleAddToShoppingList}
     />
-    
-
-    // <GestureDetector gesture={pan}>
-    //   <Animated.View style={[styles.row, animatedStyle]}>
-    //     <TouchableOpacity
-    //       style={styles.row}
-    //       onPress={() => router.push(`./ingredients/${item._id}`)}
-    //       activeOpacity={0.8}
-    //     >
-    //       <View style={styles.info}>
-    //         <Text style={styles.name}>{item.name}</Text>
-    //         <Text style={styles.meta}>
-    //           {item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}
-    //         </Text>
-    //       </View>
-    //     </TouchableOpacity>
-    //   </Animated.View>
-    // </GestureDetector>
   );
 
   if (loading) {
@@ -121,7 +97,7 @@ export default function IngredientsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Ingredientes</Text>
 
-        <View style={styles.searchContainer}>
+      <View style={styles.searchContainer}>
         <TextInput
           placeholder="Search ingredient..."
           value={query}
@@ -130,9 +106,9 @@ export default function IngredientsScreen() {
           returnKeyType="search"
           clearButtonMode="while-editing"
         />
-        { (searching || refreshing) ? (
+        {(searching || refreshing) ? (
           <ActivityIndicator style={{ marginLeft: 8 }} />
-        ) : null }
+        ) : null}
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -150,19 +126,19 @@ export default function IngredientsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#f8f9fa", 
-    padding: 16, 
-    paddingTop: 20 
-},
-  title: { 
-    fontSize: 24, 
-    fontWeight: "700", 
-    color: "#2c3e50", 
-    marginBottom: 12, 
-    textAlign: "center" 
-},
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+    padding: 16,
+    paddingTop: 20
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#2c3e50",
+    marginBottom: 12,
+    textAlign: "center"
+  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -178,18 +154,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e6eef8",
   },
-  center: { 
-    flex: 1, 
-    justifyContent: "center", 
-    alignItems: "center" 
-},
-  empty: { 
-    textAlign: "center", 
-    color: "#7f8c8d" 
-},
-  error: { 
-    color: "red", 
-    textAlign: "center", 
-    marginBottom: 12 
-}
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  empty: {
+    textAlign: "center",
+    color: "#7f8c8d"
+  },
+  error: {
+    color: "red",
+    textAlign: "center",
+    marginBottom: 12
+  }
 });
