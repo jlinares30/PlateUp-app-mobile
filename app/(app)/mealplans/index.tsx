@@ -1,5 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -29,100 +30,74 @@ export default function MealPlansScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('my-plans');
   const user = useAuthStore((state: any) => state.user);
+  const queryClient = useQueryClient();
 
-  const [myPlans, setMyPlans] = useState<MealPlan[]>([]);
-  const [publicPlans, setPublicPlans] = useState<MealPlan[]>([]);
-
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchData = async () => {
-    setError(null);
-    try {
-      // Fetch Public Plans
-      const resPublic = await api.get("/meal-plans");
-      const publicData = Array.isArray(resPublic.data?.data) ? resPublic.data?.data : (Array.isArray(resPublic.data) ? resPublic.data : []);
-
-      // Fetch My Plans
-      let myData: MealPlan[] = [];
-
-      if (user && user._id) {
-        try {
-          // Strategy 1: strict /my endpoint
-          const resMine = await api.get("/meal-plans/my");
-          myData = Array.isArray(resMine.data?.data) ? resMine.data?.data : (Array.isArray(resMine.data) ? resMine.data : []);
-        } catch (e) {
-          console.log("/my endpoint failed, trying ?owner=ID");
-          try {
-            // Strategy 2: Filter by owner via query param
-            const resOwner = await api.get(`/meal-plans`, { params: { owner: user._id } });
-            const ownerData = Array.isArray(resOwner.data?.data) ? resOwner.data?.data : (Array.isArray(resOwner.data) ? resOwner.data : []);
-
-            // client-side filter to be safe:
-            myData = ownerData.filter((p: MealPlan) => {
-              const o = typeof p.owner === 'object' ? (p.owner as any)._id : p.owner;
-              return o === user._id || p.ownerId === user._id;
-            });
-          } catch (e2) {
-            console.log("Query param failed, falling back to public list filter");
-            // Strategy 3: Client-side filter of public list
-            myData = publicData.filter((p: MealPlan) => {
-              const ownerId = typeof p.owner === 'object' ? (p.owner as any)._id : p.owner;
-              return ownerId === user._id || p.ownerId === user._id;
-            });
-          }
-        }
-      }
-
-      setPublicPlans(publicData);
-      setMyPlans(myData);
-
-    } catch (err: any) {
-      console.error("fetchData:", err);
-      setError(err?.message ?? "Error loading plans");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+  // 1. Query for Public Plans
+  const {
+    data: publicPlans = [],
+    isLoading: loadingPublic,
+    refetch: refetchPublic,
+    isRefetching: refetchingPublic
+  } = useQuery({
+    queryKey: ['mealPlans', 'public'],
+    queryFn: async () => {
+      const res = await api.get("/meal-plans");
+      return res.data?.data ?? res.data ?? [];
     }
-  };
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [user]); // Add user dependency
+  // 2. Query for My Plans
+  const {
+    data: myPlans = [],
+    isLoading: loadingMy,
+    refetch: refetchMy,
+    isRefetching: refetchingMy
+  } = useQuery({
+    queryKey: ['mealPlans', 'my', user?._id],
+    queryFn: async () => {
+      if (!user?._id) return [];
+      const res = await api.get("/meal-plans/my");
+      console.log(res.data);
+      return res.data?.data ?? res.data ?? [];
+    },
+    enabled: !!user?._id
+  });
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
+  // Derived state
+  const isLoading = loadingPublic || loadingMy;
+  const isRefreshing = refetchingPublic || refetchingMy;
 
-  const handleDuplicate = async (plan: MealPlan) => {
-    try {
-      Alert.alert("Duplicar Plan", `¿Deseas agregar "${plan.title}" a tus planes?`, [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sí, agregar",
-          onPress: async () => {
-            const res = await api.post("/meal-plans/clone", { id: plan._id });
-            const newPlan = res.data?.data ?? res.data;
-
-            Alert.alert("Éxito", "Plan agregado a tu lista.");
-
-            // Optimistic / Direct Update
-            if (newPlan && newPlan._id) {
-              setMyPlans(prev => [newPlan, ...prev]);
-              setActiveTab('my-plans');
-            } else {
-              setActiveTab('my-plans');
-              onRefresh();
-            }
-          }
-        }
-      ]);
-    } catch (e) {
-      console.error("Duplicate Error", e);
+  // Mutation for duplicating a plan
+  const duplicateMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      const res = await api.post("/meal-plans/clone", { id: planId });
+      return res.data?.data ?? res.data;
+    },
+    onSuccess: () => {
+      // Invalidate 'my' plans to trigger auto-refresh
+      queryClient.invalidateQueries({ queryKey: ['mealPlans', 'my'] });
+      Alert.alert("Éxito", "Plan guardado en 'Mis Planes'");
+      setActiveTab('my-plans');
+    },
+    onError: (error) => {
+      console.error("Duplicate Error", error);
       Alert.alert("Error", "No se pudo duplicar el plan.");
     }
+  });
+
+  const onRefresh = () => {
+    refetchPublic();
+    if (user?._id) refetchMy();
+  };
+
+  const handleDuplicate = (plan: MealPlan) => {
+    Alert.alert("Duplicar Plan", `¿Deseas agregar "${plan.title}"?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Sí, agregar",
+        onPress: () => duplicateMutation.mutate(plan._id)
+      }
+    ]);
   };
 
   const handleEdit = (plan: MealPlan) => {
@@ -130,7 +105,7 @@ export default function MealPlansScreen() {
   };
 
   const renderContent = () => {
-    if (loading && !refreshing) {
+    if (isLoading && !isRefreshing) {
       return <ActivityIndicator size="large" style={{ marginTop: 40 }} />;
     }
 
@@ -152,7 +127,7 @@ export default function MealPlansScreen() {
         )}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        refreshing={refreshing}
+        refreshing={isRefreshing}
         onRefresh={onRefresh}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -186,8 +161,6 @@ export default function MealPlansScreen() {
           <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>Descubrir</Text>
         </TouchableOpacity>
       </View>
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={{ flex: 1 }}>
         {renderContent()}
