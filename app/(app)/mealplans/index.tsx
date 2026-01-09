@@ -75,7 +75,7 @@ export default function MealPlansScreen() {
     },
     onSuccess: () => {
       // Invalidate 'my' plans to trigger auto-refresh
-      queryClient.invalidateQueries({ queryKey: ['mealPlans', 'my'] });
+      queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
       Alert.alert("Éxito", "Plan guardado en 'Mis Planes'");
       setActiveTab('my-plans');
     },

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -50,6 +51,7 @@ export default function EditMealPlanScreen() {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [days, setDays] = useState<DayPlan[]>([]);
+    const queryClient = useQueryClient();
 
     // Picker State
     const [pickerVisible, setPickerVisible] = useState(false);
@@ -93,6 +95,7 @@ export default function EditMealPlanScreen() {
             };
 
             await api.put(`/meal-plans/${id}`, payload);
+            queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
             Alert.alert("Éxito", "Plan actualizado correctamente.", [
                 { text: "OK", onPress: () => router.back() }
             ]);
