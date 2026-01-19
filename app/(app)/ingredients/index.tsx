@@ -1,5 +1,6 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator, Alert, Dimensions,
   FlatList,
@@ -11,7 +12,7 @@ import {
 } from "react-native";
 import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
-import { Ingredient, useCartStore } from "../../../src/store/useCartStore";
+import { Ingredient } from "../../../src/store/useCartStore"; // Keeping Interface import if needed, or move to types
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const THRESHOLD = SCREEN_WIDTH * 0.25;
@@ -19,62 +20,64 @@ const THRESHOLD = SCREEN_WIDTH * 0.25;
 export default function IngredientsScreen() {
 
   const router = useRouter();
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
+  // 1. Debounced Search State
   const [query, setQuery] = useState<string>("");
-  const [searching, setSearching] = useState<boolean>(false);
-  const debounceRef = useRef<number | null>(null);
-
-  const addItem = useCartStore((state) => state.addItem);
-
-  const fetchIngredients = async (q?: string) => {
-    setError(null);
-    if (q) setSearching(true);
-    try {
-      const res = await api.get("/ingredients", { params: q ? { query: q } : {} });
-      //console.log("fetchIngredients query:", q, "response:", res.data);
-      const data = res.data?.data ?? res.data;
-      setIngredients(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      console.error("fetchIngredients:", err);
-      setError(err?.response?.data?.message ?? err.message ?? "Error al cargar ingredientes");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
 
   useEffect(() => {
-    fetchIngredients();
-    // cleanup on unmount
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
-  // debounce search and call server
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    // short-circuit: if empty query, fetch all (or keep previous list)
-    debounceRef.current = setTimeout(() => {
-      fetchIngredients(query.trim() ? query.trim() : undefined);
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
     }, 400);
+
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      clearTimeout(handler);
     };
   }, [query]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchIngredients();
-  };
+  // 2. Fetch Ingredients with useQuery
+  const {
+    data: ingredients = [],
+    isLoading,
+    isFetching,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['ingredients', debouncedQuery],
+    queryFn: async () => {
+      //console.log("[DEBUG] Fetching ingredients with query:", debouncedQuery);
+      const res = await api.get("/ingredients", {
+        params: debouncedQuery.trim() ? { query: debouncedQuery.trim() } : {}
+      });
+      //console.log("[DEBUG] Fetch response data:", res.data);
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
+  // 3. Add Mutation
+  const addMutation = useMutation({
+    mutationFn: async (item: Ingredient) => {
+      console.log("[DEBUG] Adding item to list:", item);
+      const res = await api.post("/shopping-list", {
+        ingredientId: item._id,
+        quantity: 1,
+        unit: item.unit
+      });
+      console.log("[DEBUG] Add item response:", res.data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
+      Alert.alert("Añadido", "Ingrediente agregado a la lista.");
+    },
+    onError: () => {
+      Alert.alert("Error", "No se pudo agregar el ingrediente.");
+    }
+  });
 
   const handleAddToShoppingList = (item: Ingredient) => {
-    addItem(item);
-    Alert.alert("Añadido", `${item.name} se agregó a tu lista.`);
+    addMutation.mutate(item);
   };
 
   const renderItem = ({ item }: { item: Ingredient }) => (
@@ -85,7 +88,7 @@ export default function IngredientsScreen() {
     />
   );
 
-  if (loading) {
+  if (isLoading && !ingredients.length) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" />
@@ -106,18 +109,18 @@ export default function IngredientsScreen() {
           returnKeyType="search"
           clearButtonMode="while-editing"
         />
-        {(searching || refreshing) ? (
+        {(isFetching) ? (
           <ActivityIndicator style={{ marginLeft: 8 }} />
         ) : null}
       </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text style={styles.error}>{(error as Error).message || "Error cargando ingredientes"}</Text> : null}
 
       <FlatList
         data={ingredients}
         keyExtractor={(i) => i._id}
         renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />}
         ListEmptyComponent={<Text style={styles.empty}>No hay ingredientes</Text>}
         contentContainerStyle={ingredients.length === 0 ? { flex: 1, justifyContent: "center" } : undefined}
       />

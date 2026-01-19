@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import SwipeableRow from "../../../src/components/SwipeableRow";
 import api from "../../../src/lib/api.js";
-import { useCartStore } from "../../../src/store/useCartStore";
 
 interface Recipe {
   _id: string;
@@ -36,12 +35,14 @@ export default function RecipesScreen() {
   const [searching, setSearching] = useState<boolean>(false);
   const debounceRef = useRef<number | null>(null);
 
-  const addItem = useCartStore((state) => state.addItem);
+  // Mutation to add item to shopping list
+  // Using useMutation from react-query, but since we need to loop, 
+  // we might just call api directly inside the handler or use a loop of mutations.
+  // Using direct API call for simplicity in loop.
 
   const handleSwipeRecipe = async (recipe: Recipe) => {
     try {
       // 1. Fetch full details to get ingredients
-      // NOTE: If the list endpoint included ingredients, we could skip this.
       const res = await api.get(`/recipes/${recipe._id}`);
       const fullRecipe = res.data?.data ?? res.data;
 
@@ -50,24 +51,23 @@ export default function RecipesScreen() {
         return;
       }
 
-      // 2. Add each ingredient to cart
+      // 2. Add each ingredient to backend shopping list
       let addedCount = 0;
-      fullRecipe.ingredients.forEach((ingObj: any) => {
-        // Handle populated vs unpopulated ingredient
+      const promises = fullRecipe.ingredients.map(async (ingObj: any) => {
         const ingData = typeof ingObj.ingredient === 'object' ? ingObj.ingredient : null;
         if (ingData) {
-          addItem({
-            _id: ingData._id,
-            name: ingData.name,
-            category: ingData.category,
-            unit: ingObj.unit // Use recipe unit or ingredient unit?
+          await api.post("/shopping-lists", {
+            ingredientId: ingData._id,
+            quantity: ingObj.quantity || 1,
+            unit: ingObj.unit
           });
           addedCount++;
         }
       });
 
-      Alert.alert("🎉 Éxito", `Se agregaron ${addedCount} ingredientes de "${recipe.title}" a la lista.`);
+      await Promise.all(promises);
 
+      Alert.alert("🎉 Éxito", `Se agregaron ${addedCount} ingredientes de "${recipe.title}" a la lista.`);
     } catch (err) {
       console.error("Error adding recipe ingredients:", err);
       Alert.alert("Error", "No se pudieron agregar los ingredientes.");
