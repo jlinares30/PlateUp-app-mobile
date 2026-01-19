@@ -61,14 +61,22 @@ export default function AppHome() {
       color: '#f1c40f',
       route: '/ingredients' as Href
     },
-    /*     {
-          id: '7',
-          title: 'My Profile',
-          description: 'Configure your account',
-          icon: '👤',
-          color: '#9b59b6',
-          route: '/recipes' as Href
-        } */
+    {
+      id: '7',
+      title: 'My Pantry',
+      description: 'Manage your pantry',
+      icon: '🥦',
+      color: '#9b59b6',
+      route: '/pantry' as Href
+    },
+    {
+      id: '8',
+      title: 'My Profile',
+      description: 'Configure your account',
+      icon: '👤',
+      color: '#34495e',
+      route: '/profile' as Href
+    }
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
