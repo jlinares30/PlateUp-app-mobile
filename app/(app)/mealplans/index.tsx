@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,14 +15,7 @@ import api from "../../../src/lib/api";
 // @ts-ignore
 import { useAuthStore } from "../../../src/store/useAuth";
 
-interface MealPlan {
-  _id: string;
-  title: string;
-  description?: string;
-  days?: number;
-  ownerId?: string;
-  owner?: string | { _id: string };
-}
+import { MealPlan } from "../../../src/types";
 
 type Tab = 'my-plans' | 'discover';
 
@@ -42,6 +35,7 @@ export default function MealPlansScreen() {
     queryKey: ['mealPlans', 'public'],
     queryFn: async () => {
       const res = await api.get("/meal-plans");
+      console.log("Respuesta de API (Discover):", res.data);
       return res.data?.data ?? res.data ?? [];
     }
   });
@@ -53,15 +47,20 @@ export default function MealPlansScreen() {
     refetch: refetchMy,
     isRefetching: refetchingMy
   } = useQuery({
-    queryKey: ['mealPlans', 'my', user?._id],
+    queryKey: ['mealPlans', 'my', user],
     queryFn: async () => {
-      if (!user?._id) return [];
+      if (!user) return [];
       const res = await api.get("/meal-plans/my");
-      console.log(res.data);
+      console.log("Respuesta de API (Mis Planes):", res.data);
       return res.data?.data ?? res.data ?? [];
     },
-    enabled: !!user?._id
+    enabled: !!user
   });
+
+  useEffect(() => {
+    console.log("Estado actual del usuario:", user);
+    console.log("¿ID de usuario disponible?:", !!user);
+  }, [user]);
 
   // Derived state
   const isLoading = loadingPublic || loadingMy;
@@ -76,12 +75,29 @@ export default function MealPlansScreen() {
     onSuccess: () => {
       // Invalidate 'my' plans to trigger auto-refresh
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-      Alert.alert("Éxito", "Plan guardado en 'Mis Planes'");
+      Alert.alert("Success", "Plan saved to 'My Plans'");
       setActiveTab('my-plans');
     },
     onError: (error) => {
       console.error("Duplicate Error", error);
-      Alert.alert("Error", "No se pudo duplicar el plan.");
+      Alert.alert("Error", "Could not duplicate plan.");
+    }
+  });
+
+
+  // Mutation for deleting a plan
+  const deleteMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      // Assuming DELETE /meal-plans/:id is supported
+      await api.delete(`/meal-plans/${planId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+      Alert.alert("Deleted", "Meal plan deleted successfully");
+    },
+    onError: (error) => {
+      console.error("Delete Error", error);
+      Alert.alert("Error", "Could not delete plan.");
     }
   });
 
@@ -91,14 +107,21 @@ export default function MealPlansScreen() {
   };
 
   const handleDuplicate = (plan: MealPlan) => {
-    Alert.alert("Duplicar Plan", `¿Deseas agregar "${plan.title}"?`, [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert("Duplicate Plan", `Do you want to add "${plan.title}"?`, [
+      { text: "Cancel", style: "cancel" },
       {
-        text: "Sí, agregar",
+        text: "Yes, add it",
         onPress: () => duplicateMutation.mutate(plan._id)
       }
     ]);
   };
+
+  const handleDelete = (plan: MealPlan) => {
+    Alert.alert("Delete Plan", `Are you sure you want to delete "${plan.title}"?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: 'destructive', onPress: () => deleteMutation.mutate(plan._id) }
+    ]);
+  }
 
   const handleEdit = (plan: MealPlan) => {
     router.push(`/mealplans/edit/${plan._id}`);
@@ -120,9 +143,10 @@ export default function MealPlansScreen() {
             item={item}
             onPress={() => router.push(`/mealplans/${item._id}`)}
             onAction={activeTab === 'discover' ? () => handleDuplicate(item) : () => handleEdit(item)}
-            actionLabel={activeTab === 'discover' ? "Duplicar" : "Editar"}
+            actionLabel={activeTab === 'discover' ? "Duplicate" : "Edit"}
             actionIcon={activeTab === 'discover' ? "copy-outline" : "create-outline"}
             actionColor={activeTab === 'discover' ? "#27ae60" : "#2980b9"}
+            onDelete={activeTab === 'my-plans' ? () => handleDelete(item) : undefined}
           />
         )}
         contentContainerStyle={styles.listContainer}
@@ -133,8 +157,8 @@ export default function MealPlansScreen() {
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
               {activeTab === 'my-plans'
-                ? "No tienes planes activos.\n¡Ve a Descubrir para añadir uno!"
-                : "No hay planes públicos disponibles."}
+                ? "You don't have any active plans.\nGo to Discover to add one!"
+                : "No public plans available."}
             </Text>
           </View>
         }
@@ -144,7 +168,7 @@ export default function MealPlansScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Planes de Comida</Text>
+      <Text style={styles.headerTitle}>Meal Plans</Text>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
@@ -152,13 +176,13 @@ export default function MealPlansScreen() {
           style={[styles.tab, activeTab === 'my-plans' && styles.activeTab]}
           onPress={() => setActiveTab('my-plans')}
         >
-          <Text style={[styles.tabText, activeTab === 'my-plans' && styles.activeTabText]}>Mis Planes</Text>
+          <Text style={[styles.tabText, activeTab === 'my-plans' && styles.activeTabText]}>My Plans</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
           onPress={() => setActiveTab('discover')}
         >
-          <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>Descubrir</Text>
+          <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>Discover</Text>
         </TouchableOpacity>
       </View>
 

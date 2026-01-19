@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -9,38 +9,16 @@ import {
     Platform,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import RecipePicker from "../../../../src/components/RecipePicker";
 import api from "../../../../src/lib/api";
 
-interface RecipeRef {
-    _id: string;
-    title: string;
-    time?: string;
-}
-
-interface Meal {
-    _id: string; // Temp ID or real ID
-    type: string;
-    recipe: RecipeRef;
-}
-
-interface DayPlan {
-    _id: string; // Temp ID or real ID
-    day: string;
-    meals: Meal[];
-}
-
-interface MealPlan {
-    _id: string;
-    title: string;
-    description?: string;
-    days: DayPlan[];
-}
+import { DayPlan } from "../../../../src/types";
 
 export default function EditMealPlanScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -51,6 +29,7 @@ export default function EditMealPlanScreen() {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [days, setDays] = useState<DayPlan[]>([]);
+    const [isActive, setIsActive] = useState(false); // Add isActive state
     const queryClient = useQueryClient();
 
     // Picker State
@@ -68,6 +47,7 @@ export default function EditMealPlanScreen() {
             if (data) {
                 setTitle(data.title);
                 setDescription(data.description || "");
+                setIsActive(!!data.isActive); // Set initial isActive
                 if (Array.isArray(data.days)) {
                     setDays(data.days);
                 } else {
@@ -81,30 +61,44 @@ export default function EditMealPlanScreen() {
         }
     };
 
-    const handleSave = async () => {
-        if (!title.trim()) {
-            Alert.alert("Error", "El título es obligatorio.");
-            return;
-        }
-        setSaving(true);
-        try {
-            const payload = {
-                title,
-                description,
-                days: days, // Send full structure
-            };
-
-            await api.put(`/meal-plans/${id}`, payload);
+    const updateMutation = useMutation({
+        mutationFn: async (payload: any) => {
+            const res = await api.put(`/meal-plans/${id}`, payload);
+            return res.data;
+        },
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
             Alert.alert("Éxito", "Plan actualizado correctamente.", [
                 { text: "OK", onPress: () => router.back() }
             ]);
-        } catch (e) {
-            console.error(e);
+        },
+        onError: (error) => {
+            console.error(error);
             Alert.alert("Error", "No se pudieron guardar los cambios.");
-        } finally {
-            setSaving(false);
         }
+    });
+
+    const handleSave = () => {
+        if (!title.trim()) {
+            Alert.alert("Error", "El título es obligatorio.");
+            return;
+        }
+
+        const payload = {
+            title,
+            description,
+            isActive,
+            days: days.map(d => ({
+                day: d.day,
+                meals: d.meals.map(m => ({
+                    // Validar enum: si no es válido, usar 'almuerzo' por defecto
+                    type: ["desayuno", "almuerzo", "cena", "snack"].includes(m.type.toLowerCase()) ? m.type.toLowerCase() : "almuerzo",
+                    recipe: m.recipe._id // Enviar solo el ID
+                }))
+            })),
+        };
+
+        updateMutation.mutate(payload);
     };
 
     const addDay = () => {
@@ -132,7 +126,7 @@ export default function EditMealPlanScreen() {
 
         day.meals.push({
             _id: Date.now().toString(),
-            type: 'Comida',
+            type: 'almuerzo',
             recipe: { _id: recipe._id, title: recipeTitle }
         });
         setDays(newDays);
@@ -161,32 +155,42 @@ export default function EditMealPlanScreen() {
         >
             <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.rowHeader}>
-                    <Text style={styles.header}>Editar Plan</Text>
-                    <TouchableOpacity onPress={handleSave} disabled={saving}>
-                        <Text style={styles.saveLink}>Guardar</Text>
+                    <Text style={styles.header}>Edit Plan</Text>
+                    <TouchableOpacity onPress={() => handleSave()} disabled={updateMutation.isPending}>
+                        <Text style={styles.saveLink}>{updateMutation.isPending ? "Saving..." : "Save"}</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Metadata Section */}
                 <View style={styles.section}>
-                    <Text style={styles.label}>Título</Text>
+                    <Text style={styles.label}>Title</Text>
                     <TextInput
                         style={styles.input}
                         value={title}
                         onChangeText={setTitle}
-                        placeholder="Nombre del plan"
+                        placeholder="Plan name"
                     />
-                    <Text style={styles.label}>Descripción</Text>
                     <TextInput
                         style={styles.input}
                         value={description}
                         onChangeText={setDescription}
-                        placeholder="Descripción corta"
+                        placeholder="Short description"
                     />
+
+                    {/* Active Switch */}
+                    <View style={styles.switchContainer}>
+                        <Text style={styles.label}>Active</Text>
+                        <Switch
+                            value={isActive}
+                            onValueChange={setIsActive}
+                            trackColor={{ false: "#767577", true: "#81b0ff" }}
+                            thumbColor={isActive ? "#2980b9" : "#f4f3f4"}
+                        />
+                    </View>
                 </View>
 
                 {/* Days Section */}
-                <Text style={styles.sectionTitle}>Días y Comidas</Text>
+                <Text style={styles.sectionTitle}>Days and Meals</Text>
                 {days.map((day, dayIndex) => (
                     <View key={day._id || dayIndex} style={styles.dayCard}>
                         <View style={styles.dayHeader}>
@@ -204,7 +208,9 @@ export default function EditMealPlanScreen() {
                         {day.meals.map((meal, mealIndex) => (
                             <View key={meal._id || mealIndex} style={styles.mealRow}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.mealRecipe}>{meal.recipe?.title || "Receta"}</Text>
+                                    <Text style={styles.mealRecipe}>
+                                        {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
+                                    </Text>
                                 </View>
                                 <TouchableOpacity onPress={() => removeMeal(dayIndex, mealIndex)}>
                                     <Ionicons name="close-circle" size={20} color="#bdc3c7" />
@@ -214,13 +220,13 @@ export default function EditMealPlanScreen() {
 
                         <TouchableOpacity style={styles.addMealButton} onPress={() => openPicker(dayIndex)}>
                             <Ionicons name="add" size={16} color="#2980b9" />
-                            <Text style={styles.addMealText}>Agregar Comida</Text>
+                            <Text style={styles.addMealText}>Add Meal</Text>
                         </TouchableOpacity>
                     </View>
                 ))}
 
                 <TouchableOpacity style={styles.addDayButton} onPress={addDay}>
-                    <Text style={styles.addDayText}>+ Agregar Día</Text>
+                    <Text style={styles.addDayText}>+ Add Day</Text>
                 </TouchableOpacity>
 
                 <View style={{ height: 40 }} />
@@ -250,6 +256,12 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         fontSize: 16,
         color: "#2c3e50"
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 12,
     },
     sectionTitle: { fontSize: 18, fontWeight: "600", color: "#2c3e50", marginBottom: 12 },
 

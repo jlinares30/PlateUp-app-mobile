@@ -2,13 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-interface MealPlan {
-    _id: string;
-    title: string;
-    description?: string;
-    days?: number;
-    isMyPlan?: boolean; // Helpful to distinguish visual style if needed
-}
+import { MealPlan } from "../types";
+
 
 interface Props {
     item: MealPlan;
@@ -17,6 +12,7 @@ interface Props {
     actionIcon?: keyof typeof Ionicons.glyphMap;
     actionLabel?: string;
     actionColor?: string;
+    onDelete?: () => void;
 }
 
 export default function MealPlanCard({
@@ -25,7 +21,8 @@ export default function MealPlanCard({
     onAction,
     actionIcon,
     actionLabel,
-    actionColor = "#2980b9"
+    actionColor = "#2980b9",
+    onDelete
 }: Props) {
     return (
         <TouchableOpacity
@@ -36,9 +33,9 @@ export default function MealPlanCard({
             <View style={styles.content}>
                 <View style={styles.header}>
                     <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-                    {typeof item.days === "number" ? (
+                    {Array.isArray(item.days) ? (
                         <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{item.days} días</Text>
+                            <Text style={styles.badgeText}>{item.days.length} días</Text>
                         </View>
                     ) : null}
                 </View>
@@ -48,8 +45,8 @@ export default function MealPlanCard({
                 ) : null}
 
                 {/* Action Bar (Footer) */}
-                {onAction && (
-                    <View style={styles.footer}>
+                <View style={styles.footer}>
+                    {onAction && (
                         <TouchableOpacity
                             style={[styles.actionButton, { borderColor: actionColor }]}
                             onPress={onAction}
@@ -58,8 +55,19 @@ export default function MealPlanCard({
                             {actionIcon && <Ionicons name={actionIcon} size={16} color={actionColor} style={{ marginRight: 6 }} />}
                             <Text style={[styles.actionText, { color: actionColor }]}>{actionLabel}</Text>
                         </TouchableOpacity>
-                    </View>
-                )}
+                    )}
+
+                    {/* Delete Button */}
+                    {onDelete && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, { borderColor: '#e74c3c', marginLeft: 10 }]}
+                            onPress={onDelete}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="trash-outline" size={16} color="#e74c3c" />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
         </TouchableOpacity>
     );

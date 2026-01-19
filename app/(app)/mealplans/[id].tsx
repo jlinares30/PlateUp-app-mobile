@@ -1,44 +1,18 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Button,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Button,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import api from "../../../src/lib/api";
 
-interface RecipeRef {
-  _id: string;
-  title: string;
-}
-
-interface Meal {
-  _id: string;
-  type: string;
-  recipe: RecipeRef;
-}
-
-interface DayPlan {
-  _id: string;
-  day: string;
-  meals: Meal[];
-}
-
-interface MealPlan {
-  _id: string;
-  user: string;
-  title: string;
-  description: string;
-  days: DayPlan[];
-  imageUrl?: string;
-  isActive?: boolean;
-  createdAt?: string;
-}
+import { MealPlan } from "../../../src/types";
 
 export default function MealPlanDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -126,18 +100,20 @@ export default function MealPlanDetail() {
                 key={meal._id}
                 style={styles.mealRow}
                 activeOpacity={0.8}
-                onPress={() => openRecipe(meal.recipe._id)}
+                onPress={() => openRecipe(typeof meal.recipe === 'string' ? meal.recipe : meal.recipe._id)}
               >
                 <View>
                   <Text style={styles.mealType}>{meal.type.toUpperCase()}</Text>
-                  <Text style={styles.mealRecipe}>{meal.recipe.title}</Text>
+                  <Text style={styles.mealRecipe}>
+                    {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
+                  </Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         ))
       ) : (
-        <Text style={styles.empty}>No hay comidas en este plan.</Text>
+        <Text style={styles.empty}>No meals in this plan.</Text>
       )}
     </ScrollView>
   );
