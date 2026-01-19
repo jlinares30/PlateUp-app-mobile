@@ -9,6 +9,7 @@ export default function AppLayout() {
       <Stack.Screen name="shopping" options={{ headerShown: false }} />
       <Stack.Screen name="ingredients" options={{ headerShown: false }} />
       <Stack.Screen name="pantry" options={{ headerShown: false }} />
+      <Stack.Screen name="profile" options={{ headerShown: false }} />
     </Stack>
   );
 }
