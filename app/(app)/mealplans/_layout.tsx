@@ -11,6 +11,10 @@ export default function MealPlanLayout() {
         name="[id]"
         options={{ title: "Meal Plan Detail" }}
       />
+      <Stack.Screen
+        name="edit/[id]"
+        options={{ title: "Edit Meal Plan" }}
+      />
     </Stack>
   );
 }

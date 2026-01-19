@@ -65,8 +65,8 @@ export default function AppHome() {
       id: '7',
       title: 'My Pantry',
       description: 'Manage your pantry',
-      icon: '🥦',
-      color: '#9b59b6',
+      icon: '🥫',
+      color: '#8e44ad',
       route: '/pantry' as Href
     },
     {

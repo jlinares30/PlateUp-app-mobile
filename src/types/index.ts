@@ -53,3 +53,16 @@ export interface ShoppingListItem {
     unit?: string;
     checked: boolean;
 }
+
+export interface PantryItem {
+    _id: string;
+    ingredient: {
+        _id: string;
+        name: string;
+        unit?: string;
+        category?: string;
+        image?: string;
+    } | string;
+    quantity: number;
+    unit?: string;
+}
