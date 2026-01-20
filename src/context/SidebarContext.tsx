@@ -17,10 +17,10 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const nextState = !isOpen;
         setIsOpen(nextState);
         progress.value = withSpring(nextState ? 1 : 0, {
-            damping: 15,
-            stiffness: 120,
-            mass: 0.8,
-            velocity: 1
+            damping: 25,
+            stiffness: 250,
+            mass: 0.6,
+            velocity: 2
         });
     };
 

@@ -148,7 +148,7 @@ export default function RecipesScreen() {
   };
 
   const renderRecipeItem = ({ item, index }: { item: Recipe; index: number }) => (
-    <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 300)).springify().damping(15)}>
+    <Animated.View entering={FadeInDown.duration(300).springify().damping(20)}>
       <SwipeableRow
         onSwipe={() => handleSwipeRecipe(item)}
         style={{ marginBottom: SPACING.m }}

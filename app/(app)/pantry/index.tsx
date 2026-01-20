@@ -69,7 +69,7 @@ export default function PantryScreen() {
 
         return (
             <Animated.View
-                entering={FadeInDown.delay(Math.min(index * 30, 300)).springify().damping(15)}
+                entering={FadeInDown.duration(300).springify().damping(20)}
                 exiting={SlideOutRight}
                 style={styles.card}
             >

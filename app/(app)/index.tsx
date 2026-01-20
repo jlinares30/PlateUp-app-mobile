@@ -26,7 +26,7 @@ export default function AppHome() {
       color: '#ef4444',
       gradient: ['#ef4444', '#f87171'],
       route: '/recipes' as Href,
-      delay: 100
+      delay: 50
     },
     {
       id: '4',
@@ -36,7 +36,7 @@ export default function AppHome() {
       color: '#10b981',
       gradient: ['#10b981', '#34d399'],
       route: '/mealplans' as Href,
-      delay: 200
+      delay: 100
     },
     {
       id: '5',
@@ -46,7 +46,7 @@ export default function AppHome() {
       color: '#f59e0b',
       gradient: ['#f59e0b', '#fbbf24'],
       route: '/shopping' as Href,
-      delay: 300
+      delay: 150
     },
     {
       id: '7',
@@ -56,7 +56,7 @@ export default function AppHome() {
       color: '#8b5cf6',
       gradient: ['#8b5cf6', '#a78bfa'],
       route: '/pantry' as Href,
-      delay: 400
+      delay: 200
     },
     {
       id: '6',
@@ -66,7 +66,7 @@ export default function AppHome() {
       color: '#3b82f6',
       gradient: ['#3b82f6', '#60a5fa'],
       route: '/ingredients' as Href,
-      delay: 500
+      delay: 250
     },
     {
       id: '8',
@@ -76,14 +76,14 @@ export default function AppHome() {
       color: '#64748b',
       gradient: ['#64748b', '#94a3b8'],
       route: '/profile' as Href,
-      delay: 600
+      delay: 300
     }
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
     <Animated.View
       key={item.id}
-      entering={FadeInDown.delay(item.delay).springify()}
+      entering={FadeInDown.delay(item.delay).duration(400).springify().damping(18)}
       style={{ width: '48%', marginBottom: SPACING.m }}
     >
       <TouchableOpacity
@@ -107,15 +107,14 @@ export default function AppHome() {
         <View style={{ marginRight: SPACING.m }}>
           <MenuButton />
         </View>
-        <Animated.View entering={FadeInDown.duration(600)} style={styles.welcomeContainer}>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.welcomeContainer}>
           <Text style={styles.subtitleText}>Good Morning,</Text>
           <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
         </Animated.View>
-        <Animated.View entering={FadeInDown.delay(200).duration(600)}>
+        <Animated.View entering={FadeInDown.delay(100).duration(400)}>
           <TouchableOpacity
             style={styles.avatar}
             onPress={() => {
-              console.log("Intentando navegar a:", '/profile');
               router.push('/profile');
             }}
           >
@@ -125,7 +124,7 @@ export default function AppHome() {
       </View>
 
       {/* Hero Section */}
-      <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.heroSection}>
+      <Animated.View entering={FadeInUp.delay(150).springify().damping(18)} style={styles.heroSection}>
         <View style={styles.heroContent}>
           <Text style={styles.heroTitle}>What's cooking?</Text>
           <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
@@ -141,7 +140,7 @@ export default function AppHome() {
       </View>
 
       {/* Stats Quick View */}
-      <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.statsContainer}>
+      <Animated.View entering={FadeInDown.delay(200).springify().damping(18)} style={styles.statsContainer}>
         <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
           <Text style={[styles.statNumber, { color: COLORS.accent }]}>12</Text>
           <Text style={styles.statLabel}>Recipes</Text>
