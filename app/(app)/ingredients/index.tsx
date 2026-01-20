@@ -84,7 +84,7 @@ export default function IngredientsScreen() {
    * Render Item using SwipeableIngredientItem
    */
   const renderItem = ({ item, index }: { item: Ingredient; index: number }) => (
-    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+    <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 300)).springify().damping(15)}>
       <SwipeableIngredientItem
         item={item}
         onPress={() => router.push(`./ingredients/${item._id}`)}

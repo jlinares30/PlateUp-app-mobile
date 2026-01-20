@@ -15,13 +15,12 @@ const MENU_ITEMS = [
     { icon: "person-outline", label: "Profile", route: "/profile" },
 ] as const;
 
-export default function Sidebar() {
+function Sidebar() {
     const router = useRouter();
     const { toggleSidebar } = useSidebar();
     const { user, logout } = useAuthStore();
 
     const handleNavigation = (route: string) => {
-        console.log("Intentando navegar a:", route);
         toggleSidebar();
 
         // Prioritize the closing animation before triggering navigation
@@ -63,7 +62,6 @@ export default function Sidebar() {
                             key={index}
                             style={styles.menuItem}
                             onPress={() => {
-                                console.log("Intentando navegar a:", item.route);
                                 handleNavigation(item.route);
                             }}
                         >
@@ -82,6 +80,8 @@ export default function Sidebar() {
         </SafeAreaView>
     );
 }
+
+export default React.memo(Sidebar);
 
 const styles = StyleSheet.create({
     container: {
