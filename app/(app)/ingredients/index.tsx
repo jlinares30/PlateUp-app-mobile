@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -60,6 +59,7 @@ export default function IngredientsScreen() {
       const data = res.data?.data ?? res.data;
       return Array.isArray(data) ? data : [];
     },
+    staleTime: 1000 * 60 * 5 // 5 minutes cache
   });
 
   // Add Mutation
@@ -95,14 +95,6 @@ export default function IngredientsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ingredients</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <View style={styles.content}>
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color={COLORS.text.light} style={styles.searchIcon} />

@@ -44,10 +44,6 @@ export default function ProfileScreen() {
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-                </TouchableOpacity>
-                <Text style={styles.title}>My Profile</Text>
                 {isEditing ? (
                     <TouchableOpacity onPress={handleSave} disabled={loading}>
                         {loading ? <ActivityIndicator color={COLORS.primary} /> : <Text style={styles.saveText}>Save</Text>}
@@ -147,11 +143,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: SPACING.m,
-        paddingTop: SPACING.xl * 1.5,
         paddingBottom: SPACING.m,
         backgroundColor: COLORS.card,
         borderBottomWidth: 1,

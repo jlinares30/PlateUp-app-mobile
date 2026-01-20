@@ -125,14 +125,6 @@ export default function ShoppingCart() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Shopping List</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <View style={styles.summary}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryValue}>{cart.length}</Text>

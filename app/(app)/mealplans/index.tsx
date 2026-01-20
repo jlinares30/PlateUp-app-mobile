@@ -38,7 +38,8 @@ export default function MealPlansScreen() {
     queryFn: async () => {
       const res = await api.get("/meal-plans");
       return res.data?.data ?? res.data ?? [];
-    }
+    },
+    staleTime: 1000 * 60 * 5
   });
 
   // 2. Query for My Plans
@@ -195,14 +196,6 @@ export default function MealPlansScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meal Plans</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <View style={styles.content}>
         {/* Tabs */}
         <View style={styles.tabContainer}>

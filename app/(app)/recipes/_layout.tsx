@@ -5,11 +5,11 @@ export default function RecipesLayout() {
     <Stack>
       <Stack.Screen
         name="index"
-        options={{ title: "Recipes" }}
+        options={{ title: "Recipes", headerShown: false }}
       />
       <Stack.Screen
         name="[id]"
-        options={{ title: "Recipe Detail" }}
+        options={{ title: "Recipe Detail", headerShown: true }}
       />
     </Stack>
   );

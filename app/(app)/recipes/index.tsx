@@ -48,7 +48,8 @@ export default function RecipesScreen() {
       const res = await api.get("/ingredients");
       const data = res.data?.data ?? res.data;
       return Array.isArray(data) ? data : [];
-    }
+    },
+    staleTime: 1000 * 60 * 60 // 1 hour cache for simple list
   });
 
   // 2. Filter ingredients for suggestion box
@@ -92,7 +93,8 @@ export default function RecipesScreen() {
         if (!Array.isArray(data)) data = [];
       }
       return data;
-    }
+    },
+    staleTime: 1000 * 60 * 5 // 5 minutes cache
   });
 
   // 4. Mutation to add to shopping list
@@ -186,14 +188,6 @@ export default function RecipesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recipes</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
       <View style={styles.content}>
         <View style={styles.ingredientSelector}>
           <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
@@ -337,7 +331,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     position: 'absolute',
-    top: 70, // Adjust based on input height
+    top: 70,
     left: 0,
     right: 0,
     zIndex: 100,

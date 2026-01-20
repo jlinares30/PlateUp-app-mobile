@@ -5,15 +5,15 @@ export default function MealPlanLayout() {
     <Stack>
       <Stack.Screen
         name="index"
-        options={{ title: "Meal Plans" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="[id]"
-        options={{ title: "Meal Plan Detail" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="edit/[id]"
-        options={{ title: "Edit Meal Plan" }}
+        options={{ headerShown: false }}
       />
     </Stack>
   );

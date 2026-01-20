@@ -5,9 +5,9 @@ export default function ShoppingLayout() {
     <Stack>
       <Stack.Screen
         name="index"
-        options={{ title: "Shopping" }}
+        options={{ headerShown: false }}
       />
-        {/* <Stack.Screen
+      {/* <Stack.Screen
         name="[id]"
         options={{ title: "Shopping Detail" }}
         /> */}

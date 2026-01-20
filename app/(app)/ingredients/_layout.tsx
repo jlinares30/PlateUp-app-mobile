@@ -5,11 +5,11 @@ export default function IngredientsLayout() {
     <Stack>
       <Stack.Screen
         name="index"
-        options={{ title: "Ingredients" }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="[id]"
-        options={{ title: "Ingredient Detail" }}
+        options={{ headerShown: false }}
       />
     </Stack>
   );

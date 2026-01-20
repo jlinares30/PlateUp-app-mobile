@@ -1,3 +1,4 @@
+import MenuButton from "@/src/components/MenuButton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from "@/src/store/useAuth";
 import { Href, useRouter } from "expo-router";
@@ -100,9 +101,12 @@ export default function AppHome() {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
       {/* Header */}
       <View style={styles.header}>
+        <View style={{ marginRight: SPACING.m }}>
+          <MenuButton />
+        </View>
         <Animated.View entering={FadeInDown.duration(600)} style={styles.welcomeContainer}>
           <Text style={styles.subtitleText}>Good Morning,</Text>
           <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
@@ -110,7 +114,10 @@ export default function AppHome() {
         <Animated.View entering={FadeInDown.delay(200).duration(600)}>
           <TouchableOpacity
             style={styles.avatar}
-            onPress={() => router.push('/profile')}
+            onPress={() => {
+              console.log("Intentando navegar a:", '/profile');
+              router.push('/profile');
+            }}
           >
             <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
           </TouchableOpacity>
@@ -124,6 +131,14 @@ export default function AppHome() {
           <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
         </View>
       </Animated.View>
+
+      {/* Menu Grid */}
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>Dashboard</Text>
+        <View style={styles.menuGrid}>
+          {menuItems.map(renderMenuItem)}
+        </View>
+      </View>
 
       {/* Stats Quick View */}
       <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.statsContainer}>
@@ -142,14 +157,6 @@ export default function AppHome() {
           <Text style={styles.statLabel}>Plans</Text>
         </TouchableOpacity>
       </Animated.View>
-
-      {/* Menu Grid */}
-      <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Dashboard</Text>
-        <View style={styles.menuGrid}>
-          {menuItems.map(renderMenuItem)}
-        </View>
-      </View>
     </ScrollView>
   );
 }
@@ -195,6 +202,19 @@ const styles = StyleSheet.create({
     color: COLORS.card,
     fontSize: FONTS.sizes.h3,
     fontWeight: 'bold',
+  },
+  logoutButton: {
+    backgroundColor: COLORS.primary,
+    padding: SPACING.m,
+    borderRadius: SPACING.m,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.small
+  },
+  logoutText: {
+    color: COLORS.card,
+    fontSize: FONTS.sizes.body,
+    fontWeight: '600',
   },
   heroSection: {
     marginHorizontal: SPACING.l,

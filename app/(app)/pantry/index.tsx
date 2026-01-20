@@ -116,18 +116,12 @@ export default function PantryScreen() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-                </TouchableOpacity>
-                <Text style={styles.title}>My Pantry</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => router.push('/pantry/add')}
-                >
-                    <Ionicons name="add" size={24} color={COLORS.card} />
-                </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.push('/pantry/add')}
+            >
+                <Ionicons name="add" size={24} color={COLORS.card} />
+            </TouchableOpacity>
 
             {isLoading ? (
                 <View style={styles.center}>
@@ -138,6 +132,7 @@ export default function PantryScreen() {
                     <Text style={styles.errorText}>Error loading pantry: {(error as any).message}</Text>
                 </View>
             ) : (
+
                 <FlatList
                     data={pantry}
                     keyExtractor={(item) => item._id}
