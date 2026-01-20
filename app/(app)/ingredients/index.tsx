@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -16,13 +15,14 @@ import {
   View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
 
 // Types
 interface Ingredient {
   _id: string;
   name: string;
-  unit: string;
+  unit?: string;
   image?: string;
   category?: string;
 }
@@ -68,7 +68,7 @@ export default function IngredientsScreen() {
       const res = await api.post("/shopping-list", {
         ingredientId: item._id,
         quantity: 1,
-        unit: item.unit
+        unit: item.unit || 'unit'
       });
     },
     onSuccess: () => {
@@ -80,33 +80,16 @@ export default function IngredientsScreen() {
     }
   });
 
+  /* 
+   * Render Item using SwipeableIngredientItem
+   */
   const renderItem = ({ item, index }: { item: Ingredient; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.9}
+      <SwipeableIngredientItem
+        item={item}
         onPress={() => router.push(`./ingredients/${item._id}`)}
-      >
-        <Image
-          source={{ uri: item.image || "https://via.placeholder.com/150" }}
-          style={styles.cardImage}
-        />
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName}>{item.name}</Text>
-          <Text style={styles.cardDetail}>{item.category || "General"}</Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            addMutation.mutate(item);
-          }}
-        >
-          <Ionicons name="add" size={24} color={COLORS.card} />
-        </TouchableOpacity>
-      </TouchableOpacity>
+        onAdd={(authItem) => addMutation.mutate(authItem)}
+      />
     </Animated.View>
   );
 
@@ -220,43 +203,7 @@ const styles = StyleSheet.create({
     padding: SPACING.m,
     paddingTop: 0,
   },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.card,
-    marginBottom: SPACING.m,
-    padding: SPACING.m,
-    borderRadius: SPACING.m,
-    ...SHADOWS.small,
-  },
-  cardImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: SPACING.m,
-    backgroundColor: COLORS.background
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  cardName: {
-    fontSize: FONTS.sizes.body,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  cardDetail: {
-    fontSize: FONTS.sizes.small,
-    color: COLORS.text.secondary,
-  },
-  addButton: {
-    backgroundColor: COLORS.primary,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOWS.small
-  },
+  // Removed unused styles: card, cardImage, cardInfo, cardName, cardDetail, addButton
   center: {
     flex: 1,
     justifyContent: "center",
