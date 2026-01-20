@@ -42,98 +42,110 @@ export default function ProfileScreen() {
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                {isEditing ? (
-                    <TouchableOpacity onPress={handleSave} disabled={loading}>
-                        {loading ? <ActivityIndicator color={COLORS.primary} /> : <Text style={styles.saveText}>Save</Text>}
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity onPress={() => setIsEditing(true)}>
-                        <Ionicons name="create-outline" size={24} color={COLORS.primary} />
-                    </TouchableOpacity>
-                )}
-            </View>
+        <View style={styles.container}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.content}>
+                    <Animated.View entering={FadeInDown.springify()} style={styles.avatarContainer}>
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
+                            {!isEditing && (
+                                <TouchableOpacity
+                                    style={styles.editIconBadge}
+                                    onPress={() => setIsEditing(true)}
+                                >
+                                    <Ionicons name="pencil" size={16} color={COLORS.card} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <Text style={styles.userName}>{user?.name}</Text>
+                        <Text style={styles.userEmail}>{user?.email}</Text>
+                    </Animated.View>
 
-            <View style={styles.content}>
-                <Animated.View entering={FadeInDown.springify()} style={styles.avatarContainer}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
-                    </View>
-                    <Text style={styles.userName}>{user?.name}</Text>
-                    <Text style={styles.userEmail}>{user?.email}</Text>
-                </Animated.View>
+                    <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.form}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Name</Text>
+                            <TextInput
+                                style={[styles.input, !isEditing && styles.disabledInput]}
+                                value={name}
+                                onChangeText={setName}
+                                editable={isEditing}
+                                placeholder="Your Name"
+                                placeholderTextColor={COLORS.text.light}
+                            />
+                        </View>
 
-                <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.form}>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Name</Text>
-                        <TextInput
-                            style={[styles.input, !isEditing && styles.disabledInput]}
-                            value={name}
-                            onChangeText={setName}
-                            editable={isEditing}
-                            placeholder="Your Name"
-                            placeholderTextColor={COLORS.text.light}
-                        />
-                    </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email</Text>
+                            <TextInput
+                                style={[styles.input, !isEditing && styles.disabledInput]}
+                                value={email}
+                                onChangeText={setEmail}
+                                editable={isEditing}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                placeholder="Your Email"
+                                placeholderTextColor={COLORS.text.light}
+                            />
+                        </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email</Text>
-                        <TextInput
-                            style={[styles.input, !isEditing && styles.disabledInput]}
-                            value={email}
-                            onChangeText={setEmail}
-                            editable={isEditing}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            placeholder="Your Email"
-                            placeholderTextColor={COLORS.text.light}
-                        />
-                    </View>
+                        {isEditing && (
+                            <>
+                                <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
+                                    <Text style={styles.label}>New Password (Optional)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry
+                                        placeholder="Leave blank to keep current"
+                                        placeholderTextColor={COLORS.text.light}
+                                    />
+                                </Animated.View>
+                                <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
+                                    <Text style={styles.label}>Confirm New Password</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry
+                                        placeholder="Confirm new password"
+                                        placeholderTextColor={COLORS.text.light}
+                                    />
+                                </Animated.View>
+                            </>
+                        )}
+                    </Animated.View>
 
                     {isEditing && (
-                        <>
-                            <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
-                                <Text style={styles.label}>New Password (Optional)</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry
-                                    placeholder="Leave blank to keep current"
-                                    placeholderTextColor={COLORS.text.light}
-                                />
-                            </Animated.View>
-                            <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
-                                <Text style={styles.label}>Confirm New Password</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    secureTextEntry
-                                    placeholder="Confirm new password"
-                                    placeholderTextColor={COLORS.text.light}
-                                />
-                            </Animated.View>
-                        </>
+                        <Animated.View entering={FadeInDown.springify()}>
+                            <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                                setIsEditing(false);
+                                setName(user?.name || '');
+                                setEmail(user?.email || '');
+                                setPassword('');
+                                setConfirmPassword('');
+                            }}>
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
                     )}
-                </Animated.View>
+                </View>
+            </ScrollView>
 
-                {isEditing && (
-                    <Animated.View entering={FadeInDown.springify()}>
-                        <TouchableOpacity style={styles.cancelButton} onPress={() => {
-                            setIsEditing(false);
-                            setName(user?.name || '');
-                            setEmail(user?.email || '');
-                            setPassword('');
-                            setConfirmPassword('');
-                        }}>
-                            <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
-            </View>
-        </ScrollView>
+            {isEditing && (
+                <TouchableOpacity
+                    style={styles.saveFab}
+                    onPress={handleSave}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={COLORS.card} />
+                    ) : (
+                        <Ionicons name="checkmark" size={32} color={COLORS.card} />
+                    )}
+                </TouchableOpacity>
+            )}
+        </View>
     );
 }
 
@@ -142,15 +154,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    header: {
-        paddingHorizontal: SPACING.m,
-        paddingBottom: SPACING.m,
-        backgroundColor: COLORS.card,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-        ...SHADOWS.small,
-        zIndex: 10,
+    scrollContent: {
+        paddingBottom: 100
     },
+
     backButton: {
         padding: SPACING.xs,
     },
@@ -236,6 +243,32 @@ const styles = StyleSheet.create({
         color: COLORS.error,
         fontSize: FONTS.sizes.body,
         fontWeight: '600',
+    },
+    editIconBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: COLORS.primary,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.card,
+    },
+    saveFab: {
+        position: 'absolute',
+        bottom: SPACING.l,
+        right: SPACING.l,
+        backgroundColor: COLORS.accent, // Green for save
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...SHADOWS.medium,
+        zIndex: 100,
+        elevation: 5
     }
-
 });
