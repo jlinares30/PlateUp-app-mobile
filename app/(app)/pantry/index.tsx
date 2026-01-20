@@ -116,13 +116,6 @@ export default function PantryScreen() {
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => router.push('/pantry/add')}
-            >
-                <Ionicons name="add" size={24} color={COLORS.card} />
-            </TouchableOpacity>
-
             {isLoading ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
@@ -132,27 +125,34 @@ export default function PantryScreen() {
                     <Text style={styles.errorText}>Error loading pantry: {(error as any).message}</Text>
                 </View>
             ) : (
-
-                <FlatList
-                    data={pantry}
-                    keyExtractor={(item) => item._id}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.list}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Ionicons name="basket-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
-                            <Text style={styles.emptyText}>Your pantry is empty.</Text>
-                            <Text style={styles.emptySubtext}>Add items to track what you have!</Text>
-                            <TouchableOpacity
-                                style={styles.emptyButton}
-                                onPress={() => router.push('/pantry/add')}
-                            >
-                                <Text style={styles.emptyButtonText}>Add First Item</Text>
-                            </TouchableOpacity>
-                        </View>
-                    }
-                />
+                <>
+                    <FlatList
+                        data={pantry}
+                        keyExtractor={(item) => item._id}
+                        renderItem={renderItem}
+                        contentContainerStyle={styles.list}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <Ionicons name="basket-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
+                                <Text style={styles.emptyText}>Your pantry is empty.</Text>
+                                <Text style={styles.emptySubtext}>Add items to track what you have!</Text>
+                                <TouchableOpacity
+                                    style={styles.emptyButton}
+                                    onPress={() => router.push('/pantry/add')}
+                                >
+                                    <Text style={styles.emptyButtonText}>Add First Item</Text>
+                                </TouchableOpacity>
+                            </View>
+                        }
+                    />
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => router.push('/pantry/add')}
+                    >
+                        <Ionicons name="add" size={32} color={COLORS.card} />
+                    </TouchableOpacity>
+                </>
             )}
         </View>
     );
@@ -163,36 +163,22 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: SPACING.l,
-        paddingTop: SPACING.xl * 1.5,
-        paddingBottom: SPACING.l,
-        backgroundColor: COLORS.card,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-        ...SHADOWS.small,
-        zIndex: 10,
-    },
-    backButton: {
-        padding: SPACING.xs,
-    },
-    title: {
-        fontSize: FONTS.sizes.h3,
-        fontWeight: '700',
-        color: COLORS.text.primary,
-    },
+    // ... existing styles ...
     addButton: {
+        position: 'absolute',
+        bottom: SPACING.l,
+        right: SPACING.l,
         backgroundColor: COLORS.primary,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         alignItems: 'center',
         justifyContent: 'center',
-        ...SHADOWS.small
+        ...SHADOWS.medium,
+        zIndex: 100,
+        elevation: 5
     },
+    // ... other styles ...
     center: {
         flex: 1,
         justifyContent: 'center',

@@ -157,6 +157,12 @@ export default function ShoppingCart() {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <TouchableOpacity
+        style={styles.addButton}
+        onPress={() => router.push("/ingredients")}
+      >
+        <Ionicons name="add" size={28} color={COLORS.card} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -165,6 +171,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: SPACING.l,
+    right: SPACING.l,
+    backgroundColor: COLORS.primary,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.medium,
+    zIndex: 100,
+    elevation: 5
   },
   header: {
     flexDirection: 'row',
