@@ -1,28 +1,36 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator, Alert, Dimensions,
+  ActivityIndicator,
+  Alert,
   FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View
 } from "react-native";
-import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import api from "../../../src/lib/api";
-import { Ingredient } from "../../../src/store/useCartStore"; // Keeping Interface import if needed, or move to types
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const THRESHOLD = SCREEN_WIDTH * 0.25;
+// Types
+interface Ingredient {
+  _id: string;
+  name: string;
+  unit: string;
+  image?: string;
+  category?: string;
+}
 
 export default function IngredientsScreen() {
-
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // 1. Debounced Search State
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState<string>("");
 
@@ -36,7 +44,7 @@ export default function IngredientsScreen() {
     };
   }, [query]);
 
-  // 2. Fetch Ingredients with useQuery
+  // Fetch Ingredients with useQuery
   const {
     data: ingredients = [],
     isLoading,
@@ -46,84 +54,114 @@ export default function IngredientsScreen() {
   } = useQuery({
     queryKey: ['ingredients', debouncedQuery],
     queryFn: async () => {
-      //console.log("[DEBUG] Fetching ingredients with query:", debouncedQuery);
       const res = await api.get("/ingredients", {
         params: debouncedQuery.trim() ? { query: debouncedQuery.trim() } : {}
       });
-      //console.log("[DEBUG] Fetch response data:", res.data);
       const data = res.data?.data ?? res.data;
       return Array.isArray(data) ? data : [];
     },
   });
 
-  // 3. Add Mutation
+  // Add Mutation
   const addMutation = useMutation({
     mutationFn: async (item: Ingredient) => {
-      console.log("[DEBUG] Adding item to list:", item);
       const res = await api.post("/shopping-list", {
         ingredientId: item._id,
         quantity: 1,
         unit: item.unit
       });
-      console.log("[DEBUG] Add item response:", res.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
-      Alert.alert("Añadido", "Ingrediente agregado a la lista.");
+      Alert.alert("Success", "Added to shopping list");
     },
     onError: () => {
-      Alert.alert("Error", "No se pudo agregar el ingrediente.");
+      Alert.alert("Error", "Could not add to list");
     }
   });
 
-  const handleAddToShoppingList = (item: Ingredient) => {
-    addMutation.mutate(item);
-  };
+  const renderItem = ({ item, index }: { item: Ingredient; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.9}
+        onPress={() => router.push(`./ingredients/${item._id}`)}
+      >
+        <Image
+          source={{ uri: item.image || "https://via.placeholder.com/150" }}
+          style={styles.cardImage}
+        />
+        <View style={styles.cardInfo}>
+          <Text style={styles.cardName}>{item.name}</Text>
+          <Text style={styles.cardDetail}>{item.category || "General"}</Text>
+        </View>
 
-  const renderItem = ({ item }: { item: Ingredient }) => (
-    <SwipeableIngredientItem
-      item={item}
-      onPress={() => router.push(`./ingredients/${item._id}`)}
-      onAdd={handleAddToShoppingList}
-    />
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            addMutation.mutate(item);
+          }}
+        >
+          <Ionicons name="add" size={24} color={COLORS.card} />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
-
-  if (isLoading && !ingredients.length) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Ingredientes</Text>
-
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search ingredient..."
-          value={query}
-          onChangeText={setQuery}
-          style={styles.searchInput}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-        />
-        {(isFetching) ? (
-          <ActivityIndicator style={{ marginLeft: 8 }} />
-        ) : null}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Ingredients</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      {error ? <Text style={styles.error}>{(error as Error).message || "Error cargando ingredientes"}</Text> : null}
+      <View style={styles.content}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={COLORS.text.light} style={styles.searchIcon} />
+          <TextInput
+            placeholder="Search ingredient..."
+            value={query}
+            onChangeText={setQuery}
+            style={styles.searchInput}
+            placeholderTextColor={COLORS.text.light}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+          {(isFetching) && <ActivityIndicator size="small" color={COLORS.primary} />}
+        </View>
 
-      <FlatList
-        data={ingredients}
-        keyExtractor={(i) => i._id}
-        renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />}
-        ListEmptyComponent={<Text style={styles.empty}>No hay ingredientes</Text>}
-        contentContainerStyle={ingredients.length === 0 ? { flex: 1, justifyContent: "center" } : undefined}
-      />
+        {error ? (
+          <View style={styles.center}>
+            <Text style={styles.errorText}>Error loading ingredients</Text>
+          </View>
+        ) : null}
+
+        <FlatList
+          data={ingredients}
+          keyExtractor={(i) => i._id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor={COLORS.primary} />}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.center}>
+                <Text style={styles.emptyText}>No ingredients found.</Text>
+              </View>
+            ) : null
+          }
+        />
+        {isLoading && !isFetching && ingredients.length === 0 && (
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -131,44 +169,107 @@ export default function IngredientsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
-    padding: 16,
-    paddingTop: 20
+    backgroundColor: COLORS.background,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#2c3e50",
-    marginBottom: 12,
-    textAlign: "center"
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.m,
+    paddingTop: SPACING.xl * 1.5,
+    paddingBottom: SPACING.m,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    ...SHADOWS.small,
+    zIndex: 10,
+  },
+  backButton: {
+    padding: SPACING.xs,
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.h3,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  content: {
+    flex: 1,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    backgroundColor: COLORS.card,
+    marginVertical: SPACING.m,
+    marginHorizontal: SPACING.m,
+    paddingHorizontal: SPACING.m,
+    height: 48,
+    borderRadius: SPACING.m,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.small,
+  },
+  searchIcon: {
+    marginRight: SPACING.s,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e6eef8",
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text.primary,
+  },
+  listContainer: {
+    padding: SPACING.m,
+    paddingTop: 0,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    marginBottom: SPACING.m,
+    padding: SPACING.m,
+    borderRadius: SPACING.m,
+    ...SHADOWS.small,
+  },
+  cardImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: SPACING.m,
+    backgroundColor: COLORS.background
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  cardName: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  cardDetail: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.text.secondary,
+  },
+  addButton: {
+    backgroundColor: COLORS.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.small
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center"
   },
-  empty: {
+  emptyText: {
     textAlign: "center",
-    color: "#7f8c8d"
+    color: COLORS.text.secondary,
+    fontSize: FONTS.sizes.body
   },
-  error: {
-    color: "red",
+  errorText: {
+    color: COLORS.error,
     textAlign: "center",
-    marginBottom: 12
+    fontSize: FONTS.sizes.body
   }
 });

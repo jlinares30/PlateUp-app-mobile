@@ -1,3 +1,4 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -13,6 +14,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import api from "../../../src/lib/api";
 
 // Reuse ingredient interface or import from types if available
@@ -69,63 +71,69 @@ export default function PantryAddScreen() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pantry'] });
             Alert.alert("Success", "Item added to pantry!");
-            // Optional: go back or stay to add more
-            // router.back(); 
         },
         onError: (error: any) => {
             Alert.alert("Error", error.response?.data?.message || "Failed to add item");
         }
     });
 
-    const renderItem = ({ item }: { item: Ingredient }) => (
-        <View style={styles.card}>
-            {item.image ? (
-                <Image source={{ uri: item.image }} style={styles.itemImage} />
-            ) : (
-                <View style={[styles.itemImage, { backgroundColor: '#eee' }]} />
-            )}
-            <View style={styles.info}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.detail}>{item.unit} • {item.calories ?? 0} cal</Text>
-            </View>
+    const renderItem = ({ item, index }: { item: Ingredient; index: number }) => (
+        <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
             <TouchableOpacity
-                style={styles.addButton}
+                style={styles.card}
+                activeOpacity={0.7}
                 onPress={() => addMutation.mutate(item)}
             >
-                <Ionicons name="add" size={24} color="white" />
+                {item.image ? (
+                    <Image source={{ uri: item.image }} style={styles.itemImage} />
+                ) : (
+                    <View style={styles.placeholderImage}>
+                        <Ionicons name="nutrition-outline" size={24} color={COLORS.text.light} />
+                    </View>
+                )}
+                <View style={styles.info}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.detail}>{item.unit} • {item.category || 'Uncategorized'}</Text>
+                </View>
+                <View
+                    style={styles.addButton}
+                >
+                    <Ionicons name="add" size={20} color={COLORS.card} />
+                </View>
             </TouchableOpacity>
-        </View>
+        </Animated.View>
     );
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="close" size={24} color="#2c3e50" />
+                    <Ionicons name="close" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Add to Pantry</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#bdc3c7" style={styles.searchIcon} />
+                <Ionicons name="search" size={20} color={COLORS.text.light} style={styles.searchIcon} />
                 <TextInput
                     style={styles.input}
                     placeholder="Search ingredients..."
                     value={query}
                     onChangeText={setQuery}
                     autoFocus
+                    placeholderTextColor={COLORS.text.light}
                 />
                 {query.length > 0 && (
                     <TouchableOpacity onPress={() => setQuery("")}>
-                        <Ionicons name="close-circle" size={20} color="#bdc3c7" />
+                        <Ionicons name="close-circle" size={20} color={COLORS.text.light} />
                     </TouchableOpacity>
                 )}
             </View>
 
             {isLoading || (isFetching && debouncedQuery) ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#8e44ad" />
+                    <ActivityIndicator size="large" color={COLORS.primary} />
                 </View>
             ) : (
                 <FlatList
@@ -134,6 +142,14 @@ export default function PantryAddScreen() {
                     renderItem={renderItem}
                     contentContainerStyle={styles.list}
                     keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        !isLoading ? (
+                            <View style={styles.center}>
+                                <Text style={styles.emptyText}>No ingredients found.</Text>
+                            </View>
+                        ) : null
+                    }
                 />
             )}
         </View>
@@ -143,89 +159,103 @@ export default function PantryAddScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: COLORS.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: SPACING.l,
+        paddingTop: SPACING.xl * 1.5,
+        paddingBottom: SPACING.m,
+        backgroundColor: COLORS.card,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        paddingTop: 50,
+        borderBottomColor: COLORS.border,
+        ...SHADOWS.small,
+        zIndex: 10,
     },
     backButton: {
-        padding: 8,
+        padding: SPACING.xs,
     },
     title: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#2c3e50',
+        fontSize: FONTS.sizes.h3,
+        fontWeight: '700',
+        color: COLORS.text.primary,
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        margin: 16,
-        paddingHorizontal: 16,
-        height: 50,
-        borderRadius: 12,
+        backgroundColor: COLORS.card,
+        margin: SPACING.m,
+        paddingHorizontal: SPACING.m,
+        height: 48,
+        borderRadius: SPACING.m,
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: COLORS.border,
+        ...SHADOWS.small,
     },
     searchIcon: {
-        marginRight: 10,
+        marginRight: SPACING.s,
     },
     input: {
         flex: 1,
-        fontSize: 16,
-        color: '#2c3e50',
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.primary,
     },
     list: {
-        padding: 16,
+        padding: SPACING.m,
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 10,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2,
+        backgroundColor: COLORS.card,
+        padding: SPACING.m,
+        borderRadius: SPACING.m,
+        marginBottom: SPACING.m,
+        ...SHADOWS.small,
     },
     itemImage: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 12,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        marginRight: SPACING.m,
+    },
+    placeholderImage: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        marginRight: SPACING.m,
+        backgroundColor: COLORS.background,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     info: {
         flex: 1,
     },
     name: {
-        fontSize: 16,
+        fontSize: FONTS.sizes.body,
         fontWeight: '600',
-        color: '#2c3e50',
+        color: COLORS.text.primary,
     },
     detail: {
-        fontSize: 14,
-        color: '#95a5a6',
+        fontSize: FONTS.sizes.small,
+        color: COLORS.text.light,
+        marginTop: 2,
     },
     addButton: {
-        backgroundColor: '#8e44ad',
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        backgroundColor: COLORS.primary,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
     },
     center: {
-        marginTop: 50,
+        marginTop: SPACING.xl * 2,
         alignItems: 'center',
     },
+    emptyText: {
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.secondary,
+    }
 });

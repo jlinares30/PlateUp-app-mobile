@@ -1,6 +1,10 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from "@/src/store/useAuth";
 import { Href, useRouter } from "expo-router";
+import { Box, Calendar, ChefHat, Search, ShoppingBag, User as UserIcon } from "lucide-react-native";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+
 const { width } = Dimensions.get('window');
 
 export default function AppHome() {
@@ -16,132 +20,134 @@ export default function AppHome() {
     {
       id: '1',
       title: 'Recipes',
-      description: 'Discover delicious recipes',
-      icon: '🍽️',
-      color: '#e74c3c',
-      route: '/recipes' as Href
+      description: 'Discover delicious meals',
+      icon: <ChefHat size={28} color={COLORS.card} />,
+      color: '#ef4444',
+      gradient: ['#ef4444', '#f87171'],
+      route: '/recipes' as Href,
+      delay: 100
     },
-    /*     {
-          id: '2',
-          title: 'Favorites',
-          description: 'Your favorite recipes',
-          icon: '❤️',
-          color: '#e67e22',
-          route: '/recipes' as Href
-        }, 
-        {
-          id: '3',
-          title: 'Categories',
-          description: 'Explore by categories',
-          icon: '📂',
-          color: '#3498db',
-          route: '/recipes' as Href
-        },*/
     {
       id: '4',
       title: 'Meal Plans',
-      description: 'Planner of meals',
-      icon: '🗓️',
-      color: '#2ecc71',
-      route: '/mealplans' as Href
+      description: 'Organize your week',
+      icon: <Calendar size={28} color={COLORS.card} />,
+      color: '#10b981',
+      gradient: ['#10b981', '#34d399'],
+      route: '/mealplans' as Href,
+      delay: 200
     },
     {
       id: '5',
-      title: 'Shopping List',
-      description: 'Ingredients to buy',
-      icon: '🛒',
-      color: '#e74c3c',
-      route: '/shopping' as Href
-    },
-    {
-      id: '6',
-      title: 'Ingredients',
-      description: 'Manage your ingredients',
-      icon: '🥦',
-      color: '#f1c40f',
-      route: '/ingredients' as Href
+      title: 'Shopping',
+      description: 'Your grocery list',
+      icon: <ShoppingBag size={28} color={COLORS.card} />,
+      color: '#f59e0b',
+      gradient: ['#f59e0b', '#fbbf24'],
+      route: '/shopping' as Href,
+      delay: 300
     },
     {
       id: '7',
       title: 'My Pantry',
-      description: 'Manage your pantry',
-      icon: '🥫',
-      color: '#8e44ad',
-      route: '/pantry' as Href
+      description: 'Manage inventory',
+      icon: <Box size={28} color={COLORS.card} />,
+      color: '#8b5cf6',
+      gradient: ['#8b5cf6', '#a78bfa'],
+      route: '/pantry' as Href,
+      delay: 400
+    },
+    {
+      id: '6',
+      title: 'Ingredients',
+      description: 'Browse database',
+      icon: <Search size={28} color={COLORS.card} />,
+      color: '#3b82f6',
+      gradient: ['#3b82f6', '#60a5fa'],
+      route: '/ingredients' as Href,
+      delay: 500
     },
     {
       id: '8',
-      title: 'My Profile',
-      description: 'Configure your account',
-      icon: '👤',
-      color: '#34495e',
-      route: '/profile' as Href
+      title: 'Profile',
+      description: 'Account settings',
+      icon: <UserIcon size={28} color={COLORS.card} />,
+      color: '#64748b',
+      gradient: ['#64748b', '#94a3b8'],
+      route: '/profile' as Href,
+      delay: 600
     }
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
-    <TouchableOpacity
+    <Animated.View
       key={item.id}
-      style={[styles.menuItem, { backgroundColor: item.color + '15' }]}
-      onPress={() => router.push(item.route)}
-      activeOpacity={0.8}
+      entering={FadeInDown.delay(item.delay).springify()}
+      style={{ width: '48%', marginBottom: SPACING.m }}
     >
-      <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-        <Text style={styles.iconText}>{item.icon}</Text>
-      </View>
-      <View style={styles.menuContent}>
+      <TouchableOpacity
+        style={[styles.menuItem]}
+        onPress={() => router.push(item.route)}
+        activeOpacity={0.9}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
+          {item.icon}
+        </View>
         <Text style={styles.menuTitle}>{item.title}</Text>
-        <Text style={styles.menuDescription}>{item.description}</Text>
-      </View>
-      <Text style={styles.arrowIcon}>›</Text>
-    </TouchableOpacity>
+        <Text style={styles.menuDescription} numberOfLines={1}>{item.description}</Text>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>¡Hello {user?.name}!</Text>
-          <Text style={styles.subtitleText}>What are we cooking today?</Text>
+        <Animated.View entering={FadeInDown.duration(600)} style={styles.welcomeContainer}>
+          <Text style={styles.subtitleText}>Good Morning,</Text>
+          <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
+        </Animated.View>
+        <Animated.View entering={FadeInDown.delay(200).duration(600)}>
+          <TouchableOpacity
+            style={styles.avatar}
+            onPress={() => router.push('/profile')}
+          >
+            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+
+      {/* Hero Section */}
+      <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.heroSection}>
+        <View style={styles.heroContent}>
+          <Text style={styles.heroTitle}>What's cooking?</Text>
+          <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
         </View>
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          <Text style={styles.logoutText}>Log out</Text>
+      </Animated.View>
+
+      {/* Stats Quick View */}
+      <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.statsContainer}>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
+          <Text style={[styles.statNumber, { color: COLORS.accent }]}>12</Text>
+          <Text style={styles.statLabel}>Recipes</Text>
         </TouchableOpacity>
-      </View>
+        <View style={styles.statDivider} />
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
+          <Text style={[styles.statNumber, { color: COLORS.warning }]}>5</Text>
+          <Text style={styles.statLabel}>Pending</Text>
+        </TouchableOpacity>
+        <View style={styles.statDivider} />
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
+          <Text style={[styles.statNumber, { color: COLORS.secondary }]}>3</Text>
+          <Text style={styles.statLabel}>Plans</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <View style={styles.heroSection}>
-        <Text style={styles.heroEmoji}>👨‍🍳</Text>
-        <Text style={styles.heroTitle}>Welcome to your</Text>
-        <Text style={styles.heroSubtitle}>Digital Kitchen</Text>
-        <Text style={styles.heroDescription}>
-          Discover, cook, and enjoy the best recipes right at your fingertips.
-        </Text>
-      </View>
-
+      {/* Menu Grid */}
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Explore</Text>
+        <Text style={styles.sectionTitle}>Dashboard</Text>
         <View style={styles.menuGrid}>
           {menuItems.map(renderMenuItem)}
-        </View>
-      </View>
-
-      <View style={styles.quickStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>50+</Text>
-          <Text style={styles.statLabel}>Recipes</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>15</Text>
-          <Text style={styles.statLabel}>Categories</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>5★</Text>
-          <Text style={styles.statLabel}>Rating</Text>
         </View>
       </View>
     </ScrollView>
@@ -151,160 +157,138 @@ export default function AppHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingHorizontal: SPACING.l,
+    paddingTop: SPACING.xl * 1.5,
+    paddingBottom: SPACING.l,
   },
   welcomeContainer: {
     flex: 1,
   },
   welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2c3e50',
+    fontSize: FONTS.sizes.h1,
+    fontWeight: '800',
+    color: COLORS.text.primary,
+    letterSpacing: -0.5,
   },
   subtitleText: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    marginTop: 2,
-  },
-  logoutButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#ecf0f1',
-    borderRadius: 20,
-  },
-  logoutText: {
-    color: '#e74c3c',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  heroSection: {
-    alignItems: 'center',
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-  },
-  heroEmoji: {
-    fontSize: 60,
-    marginBottom: 15,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  heroDescription: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: width * 0.8,
-  },
-  menuSection: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 20,
-  },
-  menuGrid: {
-    gap: 16,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    borderRadius: 16,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    marginTop: 5,
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontSize: FONTS.sizes.body,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
     marginBottom: 4,
   },
-  menuDescription: {
-    fontSize: 14,
-    color: '#7f8c8d',
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.medium,
   },
-  arrowIcon: {
-    fontSize: 24,
-    color: '#bdc3c7',
-    fontWeight: '300',
+  avatarText: {
+    color: COLORS.card,
+    fontSize: FONTS.sizes.h3,
+    fontWeight: 'bold',
   },
-  quickStats: {
+  heroSection: {
+    marginHorizontal: SPACING.l,
+    borderRadius: SPACING.l,
+    backgroundColor: COLORS.text.primary,
+    padding: SPACING.l,
+    marginBottom: SPACING.l,
+    ...SHADOWS.large,
+    shadowColor: COLORS.primary,
+  },
+  heroContent: {},
+  heroTitle: {
+    fontSize: FONTS.sizes.h2,
+    fontWeight: '700',
+    color: COLORS.card,
+    marginBottom: SPACING.xs,
+  },
+  heroSubtitle: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text.light,
+  },
+  statsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginTop: 30,
-    marginBottom: 30,
-    borderRadius: 16,
-    paddingVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: COLORS.card,
+    marginHorizontal: SPACING.l,
+    borderRadius: SPACING.m,
+    padding: SPACING.m,
+    marginBottom: SPACING.l,
+    ...SHADOWS.small,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#e74c3c',
-    marginBottom: 4,
+    fontSize: FONTS.sizes.h2,
+    fontWeight: '800',
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 14,
-    color: '#7f8c8d',
+    fontSize: FONTS.sizes.small,
+    color: COLORS.text.secondary,
+    fontWeight: '600',
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#ecf0f1',
+    height: '80%',
+    backgroundColor: COLORS.border,
+    alignSelf: 'center',
   },
+  menuSection: {
+    paddingHorizontal: SPACING.l,
+  },
+  sectionTitle: {
+    fontSize: FONTS.sizes.h3,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: SPACING.m,
+  },
+  menuGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  menuItem: {
+    backgroundColor: COLORS.card,
+    borderRadius: SPACING.l,
+    padding: SPACING.m,
+    alignItems: 'center',
+    height: 140,
+    justifyContent: 'center',
+    ...SHADOWS.small,
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.s,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  menuTitle: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  menuDescription: {
+    fontSize: FONTS.sizes.tiny,
+    color: COLORS.text.secondary,
+  }
 });

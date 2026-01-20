@@ -1,8 +1,12 @@
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import SwipeableRow from "../../../src/components/SwipeableRow";
-import api from "../../../src/lib/api.js";
+import api from "../../../src/lib/api";
 
 interface Recipe {
   _id: string;
@@ -10,6 +14,8 @@ interface Recipe {
   description: string;
   time: string;
   matchPercentage: number;
+  imageUrl?: string;
+  ingredients?: any[];
 }
 
 interface Ingredient {
@@ -20,271 +26,254 @@ interface Ingredient {
 }
 
 export default function RecipesScreen() {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [allIngredients, setAllIngredients] = useState<Ingredient[]>([]);
-  const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
-  const [ingredientInput, setIngredientInput] = useState<string>("");
-  const [filtered, setFiltered] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
+  const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
   const [recipeQuery, setRecipeQuery] = useState<string>("");
   const [ingredientQuery, setIngredientQuery] = useState<string>("");
-  const [searching, setSearching] = useState<boolean>(false);
-  const debounceRef = useRef<number | null>(null);
+  const [debouncedRecipeQuery, setDebouncedRecipeQuery] = useState<string>("");
 
-  // Mutation to add item to shopping list
-  // Using useMutation from react-query, but since we need to loop, 
-  // we might just call api directly inside the handler or use a loop of mutations.
-  // Using direct API call for simplicity in loop.
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedRecipeQuery(recipeQuery);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [recipeQuery]);
 
-  const handleSwipeRecipe = async (recipe: Recipe) => {
-    try {
-      // 1. Fetch full details to get ingredients
-      const res = await api.get(`/recipes/${recipe._id}`);
-      const fullRecipe = res.data?.data ?? res.data;
-
-      if (!fullRecipe.ingredients || fullRecipe.ingredients.length === 0) {
-        Alert.alert("Info", "Esta receta no tiene ingredientes listados.");
-        return;
-      }
-
-      // 2. Add each ingredient to backend shopping list
-      let addedCount = 0;
-      const promises = fullRecipe.ingredients.map(async (ingObj: any) => {
-        const ingData = typeof ingObj.ingredient === 'object' ? ingObj.ingredient : null;
-        if (ingData) {
-          await api.post("/shopping-lists", {
-            ingredientId: ingData._id,
-            quantity: ingObj.quantity || 1,
-            unit: ingObj.unit
-          });
-          addedCount++;
-        }
-      });
-
-      await Promise.all(promises);
-
-      Alert.alert("🎉 Éxito", `Se agregaron ${addedCount} ingredientes de "${recipe.title}" a la lista.`);
-    } catch (err) {
-      console.error("Error adding recipe ingredients:", err);
-      Alert.alert("Error", "No se pudieron agregar los ingredientes.");
+  // 1. Fetch Items query
+  const { data: allIngredients = [] } = useQuery({
+    queryKey: ['ingredients'],
+    queryFn: async () => {
+      const res = await api.get("/ingredients");
+      const data = res.data?.data ?? res.data;
+      return Array.isArray(data) ? data : [];
     }
-  };
+  });
 
-  /* ❄️ Unified Recipe Loading Logic ❄️ */
-  const loadRecipes = async (currentQuery: string, currentIngredients: Ingredient[]) => {
-    // Determine if we are "searching" (updating list) vs "initial loading"
-    if (!loading) setSearching(true);
-    setError(null);
+  // 2. Filter ingredients for suggestion box
+  const filteredIngredients = ingredientQuery.trim()
+    ? allIngredients.filter((i: Ingredient) => i.name.toLowerCase().includes(ingredientQuery.toLowerCase())).slice(0, 6)
+    : [];
 
-    try {
+  // 3. Main Recipe Query
+  const {
+    data: recipes = [],
+    isLoading,
+    isRefetching,
+    refetch,
+    error
+  } = useQuery({
+    queryKey: ['recipes', selectedIngredients.map(i => i._id).sort().join(','), debouncedRecipeQuery],
+    queryFn: async () => {
       let data: Recipe[] = [];
 
-      if (currentIngredients.length > 0) {
-        // 1. Fetch by ingredients
+      if (selectedIngredients.length > 0) {
+        // Fetch by ingredients
         const res = await api.post("/recipes/by-ingredients", {
-          ingredientIds: currentIngredients.map(i => i._id),
+          ingredientIds: selectedIngredients.map(i => i._id),
         });
-        // Normalize response
         data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
 
-        // 2. Client-side Text Filter (if query exists)
-        if (currentQuery.trim()) {
-          const lowerQ = currentQuery.toLowerCase();
+        // Client-side text filter
+        if (debouncedRecipeQuery.trim()) {
+          const lowerQ = debouncedRecipeQuery.toLowerCase();
           data = data.filter(r => r.title.toLowerCase().includes(lowerQ));
         }
 
-        // 3. Client-side Sort by Match Percentage DESC
-        data.sort((a, b) => {
-          const matchA = a.matchPercentage ?? 0;
-          const matchB = b.matchPercentage ?? 0;
-          return matchB - matchA; // Descending
-        });
+        // Sort by match
+        data.sort((a, b) => (b.matchPercentage ?? 0) - (a.matchPercentage ?? 0));
 
       } else {
-        // 4. Fetch all / Search by text
-        const params = currentQuery.trim() ? { query: currentQuery.trim() } : {};
+        // Normal fetch
+        const params = debouncedRecipeQuery.trim() ? { query: debouncedRecipeQuery.trim() } : {};
         const res = await api.get("/recipes", { params });
         data = res.data?.data ?? res.data;
         if (!Array.isArray(data)) data = [];
       }
-
-      setRecipes(data);
-    } catch (err: any) {
-      console.error("loadRecipes error:", err);
-      setError("No se pudieron cargar las recetas.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-      setSearching(false);
+      return data;
     }
-  };
+  });
 
-  const fetchAllIngredients = async () => {
-    try {
-      const res = await api.get("/ingredients");
-      const data = res.data?.data ?? res.data;
-      setAllIngredients(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Error fetching ingredients", error);
+  // 4. Mutation to add to shopping list
+  const addAllMutation = useMutation({
+    mutationFn: async (recipe: Recipe) => {
+      // Fetch full recipe to get ingredients
+      const res = await api.get(`/recipes/${recipe._id}`);
+      const fullRecipe = res.data?.data ?? res.data;
+
+      if (!fullRecipe.ingredients || fullRecipe.ingredients.length === 0) {
+        throw new Error("No ingredients in recipe");
+      }
+
+      const promises = fullRecipe.ingredients.map(async (ingObj: any) => {
+        const ingData = typeof ingObj.ingredient === 'object' ? ingObj.ingredient : null;
+        if (ingData) {
+          await api.post("/shopping-list", {
+            ingredientId: ingData._id,
+            quantity: ingObj.quantity || 1,
+            unit: ingObj.unit
+          });
+        }
+      });
+      await Promise.all(promises);
+      return fullRecipe.ingredients.length;
+    },
+    onSuccess: (count, variables) => {
+      Alert.alert("Success", `Added ingredients from "${variables.title}" to list.`);
+      queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
+    },
+    onError: (err: any) => {
+      Alert.alert("Info", err.message === "No ingredients in recipe" ? err.message : "Could not add items.");
     }
-  };
+  });
 
-  // 🔹 Effect: Initial Mount (Fetch Ingredients only)
-  useEffect(() => {
-    fetchAllIngredients();
-    // The main effect below will handle the initial recipe fetch because vars are initiated
-  }, []);
 
-  // 🔹 Effect: Unified Search & Filter (Debounced)
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    debounceRef.current = setTimeout(() => {
-      loadRecipes(recipeQuery, selectedIngredients);
-    }, 400); // 400ms debounce
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [recipeQuery, selectedIngredients]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    // Force reload with current state
-    loadRecipes(recipeQuery, selectedIngredients);
-  };
-
-  useEffect(() => {
-    if (!ingredientQuery.trim()) {
-      setFiltered([]);
-      return;
-    }
-
-    const lower = ingredientQuery.toLowerCase();
-    const matches = allIngredients.filter((i) =>
-      i.name.toLowerCase().includes(lower)
-    );
-    setFiltered(matches.slice(0, 6));
-  }, [ingredientQuery, allIngredients]);
-
-  // 🔹 Ingredient Selection Helpers
+  // Helpers
   const addIngredient = (ingredient: Ingredient) => {
     if (!selectedIngredients.some((i) => i._id === ingredient._id)) {
       setSelectedIngredients([...selectedIngredients, ingredient]);
     }
     setIngredientQuery("");
-    setFiltered([]);
-    // Effect will trigger reload via dependency
   };
 
   const removeIngredient = (id: string) => {
     setSelectedIngredients(selectedIngredients.filter((i) => i._id !== id));
-    // Effect will trigger reload via dependency
   };
 
-  const renderRecipeItem = ({ item }: { item: Recipe }) => (
-    <SwipeableRow
-      onSwipe={() => handleSwipeRecipe(item)}
-      style={{ marginBottom: 16 }}
-      actionLabel="Agregar Todo"
-    >
-      <TouchableOpacity style={styles.recipeCard}
-        onPress={() => router.push(`/recipes/${item._id}`)}
-        activeOpacity={0.9}
-      >
-        <View style={styles.recipeContent}>
-          <View style={styles.recipeHeader}>
-            <Text style={styles.recipeTitle}>{item.title}</Text>
-            <View style={styles.timeContainer}>
-              <Text style={styles.timeText}>{item.time}</Text>
-            </View>
-          </View>
-          <Text style={styles.recipeDescription}>{item.description}</Text>
-        </View>
-        {item.matchPercentage !== undefined && (
-          <View style={styles.matchBadge}>
-            <Text style={styles.matchText}>{item.matchPercentage}% coincidencia</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    </SwipeableRow>
+  const handleSwipeRecipe = (item: Recipe) => {
+    addAllMutation.mutate(item);
+  };
 
+  const renderRecipeItem = ({ item, index }: { item: Recipe; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
+      <SwipeableRow
+        onSwipe={() => handleSwipeRecipe(item)}
+        style={{ marginBottom: SPACING.m }}
+        actionLabel="Add All"
+      >
+        <Link href={`/recipes/${item._id}`} asChild>
+          <TouchableOpacity style={styles.recipeCard} activeOpacity={0.9}>
+            <Image
+              source={{ uri: item.imageUrl || "https://via.placeholder.com/300" }}
+              style={styles.cardImage}
+            />
+            <View style={styles.recipeContent}>
+              <View style={styles.recipeHeader}>
+                <Text style={styles.recipeTitle}>{item.title}</Text>
+                <View style={styles.timeContainer}>
+                  <Ionicons name="time-outline" size={14} color={COLORS.primary} />
+                  <Text style={styles.timeText}>{item.time}</Text>
+                </View>
+              </View>
+              <Text style={styles.recipeDescription} numberOfLines={2}>{item.description}</Text>
+            </View>
+            {item.matchPercentage !== undefined && (
+              <View style={[styles.matchBadge, { opacity: item.matchPercentage > 0 ? 1 : 0 }]}>
+                <Text style={styles.matchText}>{Math.round(item.matchPercentage)}% Match</Text>
+              </View>
+            )}
+            {addAllMutation.isPending && addAllMutation.variables?._id === item._id && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+        </Link>
+      </SwipeableRow>
+    </Animated.View>
   );
 
   return (
-
     <View style={styles.container}>
-      <View style={styles.ingredientSelector}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Recipes</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-        <Text style={styles.title}>Select Ingredients</Text>
+      <View style={styles.content}>
+        <View style={styles.ingredientSelector}>
+          <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
 
-        {loading ? (
-          <ActivityIndicator size="large" />
-        ) : (
-          <>
+          <View style={styles.searchWrapper}>
             <TextInput
               value={ingredientQuery}
               onChangeText={setIngredientQuery}
               placeholder="Type an ingredient..."
               style={styles.input}
+              placeholderTextColor={COLORS.text.light}
             />
-
-            {/* 🔹 Suggestions */}
-            {filtered.length > 0 && (
-              <View style={styles.suggestions}>
-                {filtered.map((item) => (
-                  <TouchableOpacity
-                    key={item._id}
-                    onPress={() => addIngredient(item)}
-                    style={styles.suggestionItem}
-                  >
-                    <Text>{item.name}</Text>
-                    <Text style={styles.category}>{item.category ?? "—"}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {ingredientQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setIngredientQuery('')} style={{ padding: 4 }}>
+                <Ionicons name="close-circle" size={20} color={COLORS.text.light} />
+              </TouchableOpacity>
             )}
+          </View>
 
-            {/* 🔹 Selected Ingredients */}
-            <View style={styles.selectedContainer}>
-              {selectedIngredients.map((item) => (
+          {/* Suggestions */}
+          {filteredIngredients.length > 0 && (
+            <View style={styles.suggestions}>
+              {filteredIngredients.map((item: Ingredient) => (
                 <TouchableOpacity
                   key={item._id}
-                  style={styles.chip}
-                  onPress={() => removeIngredient(item._id)}
+                  onPress={() => addIngredient(item)}
+                  style={styles.suggestionItem}
                 >
-                  <Text style={styles.chipText}>{item.name} ✕</Text>
+                  <Text style={styles.suggestionText}>{item.name}</Text>
+                  <Text style={styles.category}>{item.category ?? "—"}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-          </>
-        )}
-      </View>
+          )}
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="Search recipe..."
-          value={recipeQuery}
-          onChangeText={setRecipeQuery}
-          style={styles.searchInput}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
+          {/* Selected Ingredients */}
+          <View style={styles.selectedContainer}>
+            {selectedIngredients.map((item) => (
+              <TouchableOpacity
+                key={item._id}
+                style={styles.chip}
+                onPress={() => removeIngredient(item._id)}
+              >
+                <Text style={styles.chipText}>{item.name}</Text>
+                <Ionicons name="close-circle" size={16} color={COLORS.primary} style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.mainSearch}>
+          <Ionicons name="search" size={20} color={COLORS.text.light} style={{ marginRight: 8 }} />
+          <TextInput
+            placeholder="Search recipe title..."
+            value={recipeQuery}
+            onChangeText={setRecipeQuery}
+            style={styles.searchInput}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            placeholderTextColor={COLORS.text.light}
+          />
+          {isLoading && <ActivityIndicator size="small" color={COLORS.primary} />}
+        </View>
+
+        <FlatList
+          data={recipes}
+          keyExtractor={(item) => item._id}
+          renderItem={renderRecipeItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.primary} />}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.center}>
+                <Text style={styles.emptyText}>No recipes found.</Text>
+              </View>
+            ) : null
+          }
         />
-        {(searching || refreshing) ? (
-          <ActivityIndicator style={{ marginLeft: 8 }} />
-        ) : null}
       </View>
-      <FlatList
-        data={recipes}
-        keyExtractor={(item) => item._id}
-        renderItem={renderRecipeItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContainer}
-      />
     </View>
   );
 }
@@ -292,119 +281,213 @@ export default function RecipesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 16,
-    paddingTop: 20,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.m,
+    paddingTop: SPACING.xl * 1.5,
+    paddingBottom: SPACING.m,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    padding: SPACING.xs,
+  },
+  headerTitle: {
+    fontSize: FONTS.sizes.h3,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  content: {
+    flex: 1,
+    padding: SPACING.m,
   },
   ingredientSelector: {
-    marginBottom: 16,
+    marginBottom: SPACING.m,
   },
-  title: { fontSize: 20, fontWeight: "600", marginBottom: 12, color: "#2c3e50" },
-  input: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 8,
+  sectionTitle: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: "600",
+    marginBottom: SPACING.s,
+    color: COLORS.text.primary
+  },
+  searchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
     borderWidth: 1,
-    borderColor: "#e0e6ed",
+    borderColor: COLORS.border,
+    borderRadius: SPACING.s,
+    paddingHorizontal: SPACING.s,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: SPACING.s,
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text.primary,
   },
   suggestions: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
+    backgroundColor: COLORS.card,
+    borderRadius: SPACING.s,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: "#e0e6ed",
+    borderColor: COLORS.border,
+    position: 'absolute',
+    top: 70, // Adjust based on input height
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    ...SHADOWS.medium,
   },
   suggestionItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: SPACING.s,
+    paddingHorizontal: SPACING.m,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: COLORS.border,
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  category: { color: "#7f8c8d", fontSize: 12 },
+  suggestionText: {
+    color: COLORS.text.primary,
+    fontSize: FONTS.sizes.body,
+  },
+  category: { color: COLORS.text.light, fontSize: FONTS.sizes.small },
   selectedContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginTop: 12,
-    gap: 8,
+    marginTop: SPACING.s,
+    gap: SPACING.s,
   },
   chip: {
-    backgroundColor: "#e8f4fd",
-    borderRadius: 16,
+    backgroundColor: COLORS.primary + '15', // 15% opacity
+    borderRadius: SPACING.l,
     paddingVertical: 6,
     paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
   },
-  chipText: { color: "#2980b9", fontWeight: "500" },
-  searchContainer: {
+  chipText: { color: COLORS.primary, fontWeight: "600", fontSize: FONTS.sizes.small },
+  mainSearch: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    marginBottom: SPACING.m,
+    backgroundColor: COLORS.card,
+    borderRadius: SPACING.m,
+    paddingHorizontal: SPACING.m,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    height: 48,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e6eef8",
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text.primary,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 24,
-    textAlign: 'center',
+  categoryChip: {
+    paddingVertical: SPACING.s,
+    paddingHorizontal: SPACING.m,
+    backgroundColor: COLORS.background,
+    borderRadius: SPACING.xl,
+    marginRight: SPACING.s,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryText: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.text.secondary,
+    fontWeight: "600",
+  },
+  categoryTextActive: {
+    color: COLORS.card,
   },
   listContainer: {
-    paddingBottom: 20,
+    padding: SPACING.l,
+    paddingTop: SPACING.l,
+    paddingBottom: 100,
   },
   recipeCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    elevation: 3,
-    // marginBottom handled by wrapper
+    backgroundColor: COLORS.card,
+    borderRadius: SPACING.l,
+    overflow: "hidden",
+    ...SHADOWS.medium,
   },
-  matchBadge: {
-    paddingHorizontal: 16,
-    paddingBottom: 12
-  },
-  matchText: {
-    color: '#27ae60',
-    fontWeight: '600',
-    fontSize: 12
+  cardImage: {
+    width: "100%",
+    height: 200,
   },
   recipeContent: {
-    padding: 16,
+    padding: SPACING.m,
   },
   recipeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: SPACING.s,
   },
   recipeTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontSize: FONTS.sizes.h3,
+    fontWeight: "700",
+    color: COLORS.text.primary,
     flex: 1,
-  },
-  timeContainer: {
-    backgroundColor: '#e8f4fd',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#2980b9',
-    fontWeight: '500',
+    marginRight: SPACING.s,
   },
   recipeDescription: {
-    fontSize: 14,
-    color: '#7f8c8d',
-    lineHeight: 20,
+    fontSize: FONTS.sizes.small,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
   },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: 4,
+    borderRadius: SPACING.s,
+  },
+  timeText: {
+    marginLeft: 4,
+    fontSize: FONTS.sizes.tiny,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  matchBadge: {
+    position: 'absolute',
+    top: SPACING.m,
+    right: SPACING.m,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  matchText: {
+    color: '#fff',
+    fontSize: FONTS.sizes.tiny,
+    fontWeight: '700',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: SPACING.xl,
+  },
+  emptyText: {
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text.secondary,
+  }
 });

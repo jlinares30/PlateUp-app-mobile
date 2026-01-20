@@ -1,3 +1,4 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -5,13 +6,13 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
-  Button,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeInDown, SlideOutRight } from "react-native-reanimated";
 import api from "../../../src/lib/api";
 import { ShoppingListItem } from "../../../src/types";
 
@@ -56,26 +57,30 @@ export default function ShoppingCart() {
   };
 
   const handleRemove = (itemId: string) => {
-    Alert.alert("Eliminar", "¿Eliminar este ingrediente?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar", style: "destructive", onPress: () => removeMutation.mutate(itemId) }
+    Alert.alert("Remove", "Remove this item from shopping list?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: () => removeMutation.mutate(itemId) }
     ]);
   };
 
   const totalItems = cart.reduce((s: number, i: ShoppingListItem) => s + i.quantity, 0);
 
-  const renderItem = ({ item }: { item: ShoppingListItem }) => {
+  const renderItem = ({ item, index }: { item: ShoppingListItem; index: number }) => {
     // Handle populated ingredient or fallback
-    const name = typeof item.ingredient === 'object' ? item.ingredient.name : "Ingrediente";
+    const name = typeof item.ingredient === 'object' ? item.ingredient.name : "Ingredient";
     const unit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
-    const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Varios";
+    const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Misc";
 
     return (
-      <View style={styles.row}>
+      <Animated.View
+        entering={FadeInDown.delay(index * 50).springify()}
+        exiting={SlideOutRight}
+        style={styles.row}
+      >
         <View style={styles.info}>
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.meta}>
-            {category ?? "Sin categoría"} · {unit ?? "unidad"}
+            {category ?? "Uncategorized"} · {unit ?? "unit"}
           </Text>
         </View>
 
@@ -85,7 +90,7 @@ export default function ShoppingCart() {
             onPress={() => handleChangeQuantity(item, -1)}
             disabled={updateMutation.isPending}
           >
-            <Text style={styles.qtyBtnText}>−</Text>
+            <Ionicons name="remove" size={16} color={COLORS.text.primary} />
           </TouchableOpacity>
 
           <Text style={styles.qtyText}>{item.quantity}</Text>
@@ -95,7 +100,7 @@ export default function ShoppingCart() {
             onPress={() => handleChangeQuantity(item, 1)}
             disabled={updateMutation.isPending}
           >
-            <Text style={styles.qtyBtnText}>+</Text>
+            <Ionicons name="add" size={16} color={COLORS.text.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -103,34 +108,53 @@ export default function ShoppingCart() {
             onPress={() => handleRemove(item._id)}
             disabled={removeMutation.isPending}
           >
-            <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+            <Ionicons name="trash-outline" size={20} color={COLORS.error} />
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Lista de la compra</Text>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Shopping List</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
       <View style={styles.summary}>
-        <Text style={styles.summaryText}>Artículos: {cart.length}</Text>
-        <Text style={styles.summaryText}>Total unidades: {totalItems}</Text>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>{cart.length}</Text>
+          <Text style={styles.summaryLabel}>Items</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>{totalItems}</Text>
+          <Text style={styles.summaryLabel}>Total Qty</Text>
+        </View>
       </View>
 
       {cart.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No hay ingredientes en la lista.</Text>
-          <Button title="Ver ingredientes" onPress={() => router.push("/ingredients")} />
+          <Ionicons name="cart-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
+          <Text style={styles.emptyText}>Your list is empty.</Text>
+          <TouchableOpacity
+            style={styles.emptyButton}
+            onPress={() => router.push("/ingredients")}
+          >
+            <Text style={styles.emptyButtonText}>Add Ingredients</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -138,6 +162,7 @@ export default function ShoppingCart() {
           keyExtractor={(i) => i._id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </View>
@@ -145,33 +170,104 @@ export default function ShoppingCart() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fa", padding: 16, paddingTop: 20 },
-  title: { fontSize: 24, fontWeight: "700", color: "#2c3e50", marginBottom: 12, textAlign: "center" },
-  summary: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12, paddingHorizontal: 6 },
-  summaryText: { color: "#7f8c8d", fontSize: 14 },
-  list: { paddingBottom: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.l,
+    paddingTop: SPACING.xl * 1.5,
+    paddingBottom: SPACING.l,
+    backgroundColor: COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    padding: SPACING.xs,
+  },
+  title: {
+    fontSize: FONTS.sizes.h3,
+    fontWeight: "700",
+    color: COLORS.text.primary,
+  },
+  summary: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: SPACING.m,
+    margin: SPACING.m,
+    backgroundColor: COLORS.card,
+    borderRadius: SPACING.m,
+    ...SHADOWS.small
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryValue: {
+    fontSize: FONTS.sizes.h3,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  summaryLabel: {
+    fontSize: FONTS.sizes.small,
+    color: COLORS.text.secondary,
+  },
+  summaryDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+  },
+  list: {
+    paddingHorizontal: SPACING.m,
+    paddingBottom: 80
+  },
   row: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#eef6fb",
+    backgroundColor: COLORS.card,
+    padding: SPACING.m,
+    borderRadius: SPACING.m,
+    marginBottom: SPACING.s,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    ...SHADOWS.small,
   },
-  info: { flex: 1, marginRight: 12 },
-  name: { fontSize: 16, fontWeight: "600", color: "#2c3e50" },
-  meta: { marginTop: 6, color: "#7f8c8d", fontSize: 13 },
+  info: { flex: 1, marginRight: SPACING.m },
+  name: { fontSize: FONTS.sizes.body, fontWeight: "600", color: COLORS.text.primary },
+  meta: { marginTop: 4, color: COLORS.text.secondary, fontSize: FONTS.sizes.small },
   controls: { flexDirection: 'row', alignItems: "center" },
-  qtyBtn: { width: 32, height: 32, borderRadius: 6, backgroundColor: "#ecf0f1", alignItems: "center", justifyContent: "center", marginHorizontal: 4 },
-  qtyBtnText: { fontSize: 18, fontWeight: "700", color: "#2c3e50" },
-  qtyText: { textAlign: "center", fontSize: 16, fontWeight: "600", minWidth: 24 },
-  removeBtn: { marginLeft: 10, padding: 4 },
+  qtyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtyText: {
+    textAlign: "center",
+    fontSize: FONTS.sizes.body,
+    fontWeight: "600",
+    minWidth: 30,
+    color: COLORS.text.primary
+  },
+  removeBtn: { marginLeft: SPACING.s, padding: 4 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  empty: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { color: "#7f8c8d", marginBottom: 12 },
+  empty: { flex: 1, justifyContent: "center", alignItems: "center", padding: SPACING.xl },
+  emptyText: { color: COLORS.text.secondary, fontSize: FONTS.sizes.h3, marginBottom: SPACING.l },
+  emptyButton: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.m,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: SPACING.l,
+    ...SHADOWS.medium,
+  },
+  emptyButtonText: {
+    color: COLORS.card,
+    fontWeight: '700',
+    fontSize: FONTS.sizes.body,
+  }
 });
 
 

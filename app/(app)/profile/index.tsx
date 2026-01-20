@@ -1,8 +1,10 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from '@/src/store/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -43,30 +45,30 @@ export default function ProfileScreen() {
         <ScrollView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#2c3e50" />
+                    <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
                 <Text style={styles.title}>My Profile</Text>
                 {isEditing ? (
                     <TouchableOpacity onPress={handleSave} disabled={loading}>
-                        {loading ? <ActivityIndicator color="#8e44ad" /> : <Text style={styles.saveText}>Save</Text>}
+                        {loading ? <ActivityIndicator color={COLORS.primary} /> : <Text style={styles.saveText}>Save</Text>}
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity onPress={() => setIsEditing(true)}>
-                        <Ionicons name="create-outline" size={24} color="#8e44ad" />
+                        <Ionicons name="create-outline" size={24} color={COLORS.primary} />
                     </TouchableOpacity>
                 )}
             </View>
 
             <View style={styles.content}>
-                <View style={styles.avatarContainer}>
+                <Animated.View entering={FadeInDown.springify()} style={styles.avatarContainer}>
                     <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
+                        <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
                     </View>
                     <Text style={styles.userName}>{user?.name}</Text>
                     <Text style={styles.userEmail}>{user?.email}</Text>
-                </View>
+                </Animated.View>
 
-                <View style={styles.form}>
+                <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.form}>
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Name</Text>
                         <TextInput
@@ -74,6 +76,8 @@ export default function ProfileScreen() {
                             value={name}
                             onChangeText={setName}
                             editable={isEditing}
+                            placeholder="Your Name"
+                            placeholderTextColor={COLORS.text.light}
                         />
                     </View>
 
@@ -86,12 +90,14 @@ export default function ProfileScreen() {
                             editable={isEditing}
                             keyboardType="email-address"
                             autoCapitalize="none"
+                            placeholder="Your Email"
+                            placeholderTextColor={COLORS.text.light}
                         />
                     </View>
 
                     {isEditing && (
                         <>
-                            <View style={styles.inputGroup}>
+                            <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
                                 <Text style={styles.label}>New Password (Optional)</Text>
                                 <TextInput
                                     style={styles.input}
@@ -99,9 +105,10 @@ export default function ProfileScreen() {
                                     onChangeText={setPassword}
                                     secureTextEntry
                                     placeholder="Leave blank to keep current"
+                                    placeholderTextColor={COLORS.text.light}
                                 />
-                            </View>
-                            <View style={styles.inputGroup}>
+                            </Animated.View>
+                            <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
                                 <Text style={styles.label}>Confirm New Password</Text>
                                 <TextInput
                                     style={styles.input}
@@ -109,22 +116,25 @@ export default function ProfileScreen() {
                                     onChangeText={setConfirmPassword}
                                     secureTextEntry
                                     placeholder="Confirm new password"
+                                    placeholderTextColor={COLORS.text.light}
                                 />
-                            </View>
+                            </Animated.View>
                         </>
                     )}
-                </View>
+                </Animated.View>
 
                 {isEditing && (
-                    <TouchableOpacity style={styles.cancelButton} onPress={() => {
-                        setIsEditing(false);
-                        setName(user?.name || '');
-                        setEmail(user?.email || '');
-                        setPassword('');
-                        setConfirmPassword('');
-                    }}>
-                        <Text style={styles.cancelText}>Cancel</Text>
-                    </TouchableOpacity>
+                    <Animated.View entering={FadeInDown.springify()}>
+                        <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                            setIsEditing(false);
+                            setName(user?.name || '');
+                            setEmail(user?.email || '');
+                            setPassword('');
+                            setConfirmPassword('');
+                        }}>
+                            <Text style={styles.cancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
                 )}
             </View>
         </ScrollView>
@@ -134,104 +144,105 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: COLORS.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: SPACING.m,
+        paddingTop: SPACING.xl * 1.5,
+        paddingBottom: SPACING.m,
+        backgroundColor: COLORS.card,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        paddingTop: 50,
+        borderBottomColor: COLORS.border,
+        ...SHADOWS.small,
+        zIndex: 10,
     },
     backButton: {
-        padding: 8,
+        padding: SPACING.xs,
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#2c3e50',
+        fontSize: FONTS.sizes.h3,
+        fontWeight: '700',
+        color: COLORS.text.primary,
     },
     saveText: {
-        color: '#8e44ad',
+        color: COLORS.primary,
         fontWeight: '600',
-        fontSize: 16,
+        fontSize: FONTS.sizes.body,
     },
     content: {
-        padding: 20,
+        padding: SPACING.m,
     },
     avatarContainer: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: SPACING.l,
     },
     avatar: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        backgroundColor: '#8e44ad',
+        backgroundColor: COLORS.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: SPACING.m,
+        ...SHADOWS.medium
     },
     avatarText: {
         fontSize: 40,
-        color: '#fff',
+        color: COLORS.card,
         fontWeight: 'bold',
     },
     userName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#2c3e50',
+        fontSize: FONTS.sizes.h2,
+        fontWeight: '700',
+        color: COLORS.text.primary,
     },
     userEmail: {
-        fontSize: 16,
-        color: '#7f8c8d',
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.secondary,
         marginTop: 4,
     },
     form: {
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        backgroundColor: COLORS.card,
+        borderRadius: SPACING.l,
+        padding: SPACING.l,
+        ...SHADOWS.small,
     },
     inputGroup: {
-        marginBottom: 16,
+        marginBottom: SPACING.m,
     },
     label: {
-        fontSize: 14,
-        color: '#7f8c8d',
-        marginBottom: 8,
-        fontWeight: '500',
+        fontSize: FONTS.sizes.small,
+        color: COLORS.text.secondary,
+        marginBottom: SPACING.xs,
+        fontWeight: '600',
     },
     input: {
         borderWidth: 1,
-        borderColor: '#eee',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        color: '#2c3e50',
-        backgroundColor: '#f8f9fa',
+        borderColor: COLORS.border,
+        borderRadius: SPACING.s,
+        padding: SPACING.m,
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.primary,
+        backgroundColor: COLORS.background,
     },
     disabledInput: {
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.card,
         borderColor: 'transparent',
         paddingHorizontal: 0,
-        color: '#2c3e50',
+        color: COLORS.text.primary,
+        padding: 0
     },
     cancelButton: {
-        marginTop: 20,
+        marginTop: SPACING.l,
         alignItems: 'center',
-        padding: 15,
+        padding: SPACING.m,
     },
     cancelText: {
-        color: '#e74c3c',
-        fontSize: 16,
+        color: COLORS.error,
+        fontSize: FONTS.sizes.body,
         fontWeight: '600',
     }
 

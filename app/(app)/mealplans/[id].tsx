@@ -1,17 +1,18 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Button,
   Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import api from "../../../src/lib/api";
-
 import { MealPlan } from "../../../src/types";
 
 export default function MealPlanDetail() {
@@ -44,8 +45,10 @@ export default function MealPlanDetail() {
   if (!id) {
     return (
       <View style={styles.center}>
-        <Text> ID not provided.</Text>
-        <Button title="Back" onPress={() => router.back()} />
+        <Text style={styles.errorText}>ID not provided.</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -53,7 +56,7 @@ export default function MealPlanDetail() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -61,9 +64,13 @@ export default function MealPlanDetail() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{error}</Text>
-        <Button title="Retry" onPress={() => fetchMealPlan(id)} />
-        <Button title="Back" onPress={() => router.back()} />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.button} onPress={() => fetchMealPlan(id)}>
+          <Text style={styles.buttonText}>Retry</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.button, { marginTop: SPACING.m, backgroundColor: COLORS.secondary }]} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -71,8 +78,10 @@ export default function MealPlanDetail() {
   if (!mealPlan) {
     return (
       <View style={styles.center}>
-        <Text>Not found meal plan.</Text>
-        <Button title="Back" onPress={() => router.back()} />
+        <Text style={styles.errorText}>Not found meal plan.</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -82,113 +91,196 @@ export default function MealPlanDetail() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {mealPlan.imageUrl ? (
-        <Image source={{ uri: mealPlan.imageUrl }} style={styles.image} />
-      ) : null}
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.title}>{mealPlan.title}</Text>
-      {mealPlan.description ? <Text style={styles.description}>{mealPlan.description}</Text> : null}
-
-      {mealPlan.days && mealPlan.days.length > 0 ? (
-        mealPlan.days.map((day) => (
-          <View key={day._id} style={styles.daySection}>
-            <Text style={styles.sectionTitle}>📅 {day.day}</Text>
-
-            {day.meals.map((meal) => (
-              <TouchableOpacity
-                key={meal._id}
-                style={styles.mealRow}
-                activeOpacity={0.8}
-                onPress={() => openRecipe(typeof meal.recipe === 'string' ? meal.recipe : meal.recipe._id)}
-              >
-                <View>
-                  <Text style={styles.mealType}>{meal.type.toUpperCase()}</Text>
-                  <Text style={styles.mealRecipe}>
-                    {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+      <Animated.View entering={FadeInDown.springify()}>
+        {mealPlan.imageUrl ? (
+          <Image source={{ uri: mealPlan.imageUrl }} style={styles.image} />
+        ) : (
+          <View style={styles.placeholderImage}>
+            <Ionicons name="restaurant-outline" size={64} color={COLORS.text.light} />
           </View>
-        ))
-      ) : (
-        <Text style={styles.empty}>No meals in this plan.</Text>
-      )}
+        )}
+
+        <Text style={styles.title}>{mealPlan.title}</Text>
+        {mealPlan.description ? <Text style={styles.description}>{mealPlan.description}</Text> : null}
+
+        {mealPlan.days && mealPlan.days.length > 0 ? (
+          mealPlan.days.map((day, index) => (
+            <Animated.View
+              key={day._id}
+              entering={FadeInDown.delay(index * 100).springify()}
+              style={styles.daySection}
+            >
+              <View style={styles.dayHeader}>
+                <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.sectionTitle}>{day.day}</Text>
+              </View>
+
+              {day.meals.map((meal) => (
+                <TouchableOpacity
+                  key={meal._id}
+                  style={styles.mealRow}
+                  activeOpacity={0.8}
+                  onPress={() => openRecipe(typeof meal.recipe === 'string' ? meal.recipe : meal.recipe._id)}
+                >
+                  <View style={styles.mealIcon}>
+                    <Ionicons
+                      name={meal.type.toLowerCase().includes('breakfast') ? 'sunny-outline' : meal.type.toLowerCase().includes('lunch') ? 'restaurant-outline' : 'moon-outline'}
+                      size={20}
+                      color={COLORS.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.mealType}>{meal.type.toUpperCase()}</Text>
+                    <Text style={styles.mealRecipe}>
+                      {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={COLORS.text.light} />
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No meals in this plan.</Text>
+          </View>
+        )}
+      </Animated.View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    padding: SPACING.m,
     paddingBottom: 40,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.background,
+    minHeight: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: SPACING.xl,
+    marginBottom: SPACING.m,
+  },
+  backButton: {
+    padding: SPACING.xs,
   },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
-    backgroundColor: "#fff",
+    padding: SPACING.m,
+    backgroundColor: COLORS.background,
   },
   image: {
     width: "100%",
-    height: 180,
-    borderRadius: 12,
-    marginBottom: 12,
+    height: 220,
+    borderRadius: SPACING.l,
+    marginBottom: SPACING.l,
     resizeMode: "cover",
   },
+  placeholderImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: SPACING.l,
+    marginBottom: SPACING.l,
+    backgroundColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#2c3e50",
-    marginBottom: 6,
+    fontSize: FONTS.sizes.h2,
+    fontWeight: "800",
+    color: COLORS.text.primary,
+    marginBottom: SPACING.s,
   },
   description: {
-    fontSize: 15,
-    color: "#444",
-    lineHeight: 20,
-    marginBottom: 8,
+    fontSize: FONTS.sizes.body,
+    color: COLORS.text.secondary,
+    lineHeight: 22,
+    marginBottom: SPACING.l,
   },
   daySection: {
-    marginTop: 16,
-    backgroundColor: "#f9f9f9",
-    padding: 10,
-    borderRadius: 12,
+    marginTop: SPACING.m,
+    backgroundColor: COLORS.card,
+    padding: SPACING.m,
+    borderRadius: SPACING.l,
+    ...SHADOWS.small,
+  },
+  dayHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.m,
+    paddingBottom: SPACING.s,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    gap: SPACING.s
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#2c3e50",
+    fontSize: FONTS.sizes.h3,
+    fontWeight: "700",
+    color: COLORS.text.primary,
   },
   mealRow: {
-    padding: 10,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#eef6fb",
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SPACING.m,
+    backgroundColor: COLORS.background,
+    borderRadius: SPACING.m,
+    marginBottom: SPACING.s,
+  },
+  mealIcon: {
+    marginRight: SPACING.m,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mealType: {
-    fontSize: 13,
-    color: "#2980b9",
-    fontWeight: "600",
+    fontSize: FONTS.sizes.small,
+    color: COLORS.primary,
+    fontWeight: "700",
+    marginBottom: 2,
   },
   mealRecipe: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#2c3e50",
-    marginTop: 2,
+    fontSize: FONTS.sizes.body,
+    fontWeight: "600",
+    color: COLORS.text.primary,
   },
-  empty: {
+  emptyContainer: {
+    marginTop: SPACING.xl,
+    alignItems: 'center',
+  },
+  emptyText: {
     textAlign: "center",
-    color: "#7f8c8d",
-    marginTop: 20,
+    color: COLORS.text.secondary,
+    fontSize: FONTS.sizes.body,
   },
-  error: {
-    color: "red",
-    marginBottom: 12,
+  errorText: {
+    color: COLORS.error,
+    marginBottom: SPACING.m,
+    fontSize: FONTS.sizes.body,
   },
+  button: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: SPACING.m,
+    paddingHorizontal: SPACING.xl,
+    borderRadius: SPACING.m,
+    ...SHADOWS.small,
+  },
+  buttonText: {
+    color: COLORS.card,
+    fontWeight: '600',
+    fontSize: FONTS.sizes.body,
+  }
 });

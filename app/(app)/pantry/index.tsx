@@ -1,8 +1,10 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, SlideOutRight } from 'react-native-reanimated';
 import api from '../../../src/lib/api';
 import { PantryItem } from '../../../src/types';
 
@@ -62,63 +64,74 @@ export default function PantryScreen() {
         }
     };
 
-    const renderItem = ({ item }: { item: PantryItem }) => {
+    const renderItem = ({ item, index }: { item: PantryItem; index: number }) => {
         const ingredient = typeof item.ingredient === 'object' ? item.ingredient : { name: 'Unknown', _id: '', unit: '', image: undefined };
 
         return (
-            <View style={styles.card}>
-                {ingredient.image && (
+            <Animated.View
+                entering={FadeInDown.delay(index * 50).springify()}
+                exiting={SlideOutRight}
+                style={styles.card}
+            >
+                {ingredient.image ? (
                     <Image source={{ uri: ingredient.image }} style={styles.itemImage} />
+                ) : (
+                    <View style={[styles.itemImage, { backgroundColor: COLORS.border, justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="image-outline" size={20} color={COLORS.text.light} />
+                    </View>
                 )}
+
                 <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>{ingredient.name}</Text>
-                    <Text style={styles.itemUnit}>{item.quantity} {item.unit || ingredient.unit}</Text>
+                    <Text style={styles.itemUnit}>{item.quantity} {item.unit || ingredient.unit || 'units'}</Text>
                 </View>
 
                 <View style={styles.controls}>
                     <TouchableOpacity
                         onPress={() => handleQuantityChange(item, item.quantity - 1)}
-                        style={styles.button}
+                        style={styles.controlButton}
                     >
-                        <Ionicons name="remove" size={20} color="#e74c3c" />
+                        <Ionicons name="remove" size={16} color={COLORS.text.primary} />
                     </TouchableOpacity>
 
                     <Text style={styles.quantity}>{item.quantity}</Text>
 
                     <TouchableOpacity
                         onPress={() => handleQuantityChange(item, item.quantity + 1)}
-                        style={styles.button}
+                        style={styles.controlButton}
                     >
-                        <Ionicons name="add" size={20} color="#27ae60" />
+                        <Ionicons name="add" size={16} color={COLORS.text.primary} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                         onPress={() => handleRemove(item._id)}
-                        style={[styles.button, styles.deleteButton]}
+                        style={[styles.controlButton, { marginLeft: SPACING.s, backgroundColor: '#fee2e2' }]}
                     >
-                        <Ionicons name="trash-outline" size={20} color="#e74c3c" />
+                        <Ionicons name="trash-outline" size={18} color={COLORS.error} />
                     </TouchableOpacity>
                 </View>
-            </View>
+            </Animated.View>
         );
     };
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+                </TouchableOpacity>
                 <Text style={styles.title}>My Pantry</Text>
                 <TouchableOpacity
                     style={styles.addButton}
                     onPress={() => router.push('/pantry/add')}
                 >
-                    <Ionicons name="add" size={24} color="#fff" />
+                    <Ionicons name="add" size={24} color={COLORS.card} />
                 </TouchableOpacity>
             </View>
 
             {isLoading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#8e44ad" />
+                    <ActivityIndicator size="large" color={COLORS.primary} />
                 </View>
             ) : isError ? (
                 <View style={styles.center}>
@@ -130,10 +143,18 @@ export default function PantryScreen() {
                     keyExtractor={(item) => item._id}
                     renderItem={renderItem}
                     contentContainerStyle={styles.list}
+                    showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <View style={styles.emptyContainer}>
+                            <Ionicons name="basket-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
                             <Text style={styles.emptyText}>Your pantry is empty.</Text>
                             <Text style={styles.emptySubtext}>Add items to track what you have!</Text>
+                            <TouchableOpacity
+                                style={styles.emptyButton}
+                                onPress={() => router.push('/pantry/add')}
+                            >
+                                <Text style={styles.emptyButtonText}>Add First Item</Text>
+                            </TouchableOpacity>
                         </View>
                     }
                 />
@@ -145,30 +166,37 @@ export default function PantryScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: COLORS.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
-        backgroundColor: '#fff',
+        paddingHorizontal: SPACING.l,
+        paddingTop: SPACING.xl * 1.5,
+        paddingBottom: SPACING.l,
+        backgroundColor: COLORS.card,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-        paddingTop: 50,
+        borderBottomColor: COLORS.border,
+        ...SHADOWS.small,
+        zIndex: 10,
     },
     backButton: {
-        padding: 8,
+        padding: SPACING.xs,
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#2c3e50',
+        fontSize: FONTS.sizes.h3,
+        fontWeight: '700',
+        color: COLORS.text.primary,
     },
     addButton: {
-        backgroundColor: '#8e44ad',
-        padding: 8,
+        backgroundColor: COLORS.primary,
+        width: 40,
+        height: 40,
         borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...SHADOWS.small
     },
     center: {
         flex: 1,
@@ -176,74 +204,88 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     list: {
-        padding: 16,
+        padding: SPACING.m,
+        paddingBottom: 40,
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        backgroundColor: COLORS.card,
+        padding: SPACING.m,
+        borderRadius: SPACING.m,
+        marginBottom: SPACING.m,
+        ...SHADOWS.small,
     },
     itemImage: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 16,
-        backgroundColor: '#eee',
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        marginRight: SPACING.m,
     },
     itemInfo: {
         flex: 1,
     },
     itemName: {
-        fontSize: 16,
+        fontSize: FONTS.sizes.body,
         fontWeight: '600',
-        color: '#2c3e50',
+        color: COLORS.text.primary,
     },
     itemUnit: {
-        fontSize: 14,
-        color: '#7f8c8d',
+        fontSize: FONTS.sizes.small,
+        color: COLORS.text.secondary,
+        marginTop: 2,
     },
     controls: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: SPACING.xs,
     },
-    button: {
-        padding: 8,
-        backgroundColor: '#f8f9fa',
+    controlButton: {
+        width: 32,
+        height: 32,
+        backgroundColor: COLORS.background,
         borderRadius: 8,
-    },
-    deleteButton: {
-        marginLeft: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     quantity: {
-        fontSize: 16,
+        fontSize: FONTS.sizes.body,
         fontWeight: '600',
-        minWidth: 20,
+        minWidth: 24,
         textAlign: 'center',
+        color: COLORS.text.primary
     },
     errorText: {
-        color: '#e74c3c',
-        fontSize: 16,
+        color: COLORS.error,
+        fontSize: FONTS.sizes.body,
     },
     emptyContainer: {
         alignItems: 'center',
-        padding: 40,
+        padding: SPACING.xl,
+        marginTop: SPACING.xl,
     },
     emptyText: {
-        fontSize: 18,
-        color: '#2c3e50',
-        marginBottom: 8,
+        fontSize: FONTS.sizes.h3,
+        color: COLORS.text.primary,
+        fontWeight: '700',
+        marginBottom: SPACING.s,
     },
     emptySubtext: {
-        fontSize: 14,
-        color: '#7f8c8d',
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.secondary,
+        textAlign: 'center',
+        marginBottom: SPACING.l,
     },
+    emptyButton: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: SPACING.m,
+        paddingHorizontal: SPACING.xl,
+        borderRadius: SPACING.l,
+        ...SHADOWS.medium
+    },
+    emptyButtonText: {
+        color: COLORS.card,
+        fontWeight: '700',
+        fontSize: FONTS.sizes.body
+    }
 });

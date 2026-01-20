@@ -1,3 +1,4 @@
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,6 +8,7 @@ import {
     Alert,
     KeyboardAvoidingView,
     Platform,
+    SafeAreaView,
     ScrollView,
     StyleSheet,
     Switch,
@@ -15,9 +17,9 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
+import Animated, { FadeInDown, SlideInRight, SlideOutRight } from "react-native-reanimated";
 import RecipePicker from "../../../../src/components/RecipePicker";
 import api from "../../../../src/lib/api";
-
 import { DayPlan } from "../../../../src/types";
 
 export default function EditMealPlanScreen() {
@@ -29,7 +31,7 @@ export default function EditMealPlanScreen() {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [days, setDays] = useState<DayPlan[]>([]);
-    const [isActive, setIsActive] = useState(false); // Add isActive state
+    const [isActive, setIsActive] = useState(false);
     const queryClient = useQueryClient();
 
     // Picker State
@@ -47,7 +49,7 @@ export default function EditMealPlanScreen() {
             if (data) {
                 setTitle(data.title);
                 setDescription(data.description || "");
-                setIsActive(!!data.isActive); // Set initial isActive
+                setIsActive(!!data.isActive);
                 if (Array.isArray(data.days)) {
                     setDays(data.days);
                 } else {
@@ -68,19 +70,19 @@ export default function EditMealPlanScreen() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-            Alert.alert("Éxito", "Plan actualizado correctamente.", [
+            Alert.alert("Success", "Plan updated successfully.", [
                 { text: "OK", onPress: () => router.back() }
             ]);
         },
         onError: (error) => {
             console.error(error);
-            Alert.alert("Error", "No se pudieron guardar los cambios.");
+            Alert.alert("Error", "Could not save changes.");
         }
     });
 
     const handleSave = () => {
         if (!title.trim()) {
-            Alert.alert("Error", "El título es obligatorio.");
+            Alert.alert("Error", "Title is required.");
             return;
         }
 
@@ -91,8 +93,8 @@ export default function EditMealPlanScreen() {
             days: days.map(d => ({
                 day: d.day,
                 meals: d.meals.map(m => ({
-                    // Validar enum: si no es válido, usar 'almuerzo' por defecto
-                    type: ["desayuno", "almuerzo", "cena", "snack"].includes(m.type.toLowerCase()) ? m.type.toLowerCase() : "almuerzo",
+                    // Validar enum: si no es válido, usar 'lunch' por defecto
+                    type: ["breakfast", "lunch", "dinner", "snack"].includes(m.type.toLowerCase()) ? m.type.toLowerCase() : "lunch",
                     recipe: m.recipe._id // Enviar solo el ID
                 }))
             })),
@@ -102,7 +104,7 @@ export default function EditMealPlanScreen() {
     };
 
     const addDay = () => {
-        setDays([...days, { _id: Date.now().toString(), day: `Día ${days.length + 1}`, meals: [] }]);
+        setDays([...days, { _id: Date.now().toString(), day: `Day ${days.length + 1}`, meals: [] }]);
     };
 
     const removeDay = (index: number) => {
@@ -121,12 +123,11 @@ export default function EditMealPlanScreen() {
 
         const newDays = [...days];
         const day = newDays[activeDayIndex];
-        // Check if title is string or object (api inconsistency handling)
-        const recipeTitle = typeof recipe.title === 'string' ? recipe.title : "Receta";
+        const recipeTitle = typeof recipe.title === 'string' ? recipe.title : "Recipe";
 
         day.meals.push({
             _id: Date.now().toString(),
-            type: 'almuerzo',
+            type: 'lunch',
             recipe: { _id: recipe._id, title: recipeTitle }
         });
         setDays(newDays);
@@ -146,191 +147,300 @@ export default function EditMealPlanScreen() {
         setDays(newDays);
     };
 
-    if (loading) return <ActivityIndicator size="large" style={styles.center} />;
+    if (loading) return (
+        <View style={styles.center}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+    );
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1, backgroundColor: "#fff" }}
-        >
-            <ScrollView contentContainerStyle={styles.container}>
-                <View style={styles.rowHeader}>
-                    <Text style={styles.header}>Edit Plan</Text>
-                    <TouchableOpacity onPress={() => handleSave()} disabled={updateMutation.isPending}>
-                        <Text style={styles.saveLink}>{updateMutation.isPending ? "Saving..." : "Save"}</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={{ flex: 1 }}
+            >
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Edit Plan</Text>
+                    <TouchableOpacity onPress={() => handleSave()} disabled={updateMutation.isPending} style={styles.saveButton}>
+                        {updateMutation.isPending ? (
+                            <ActivityIndicator size="small" color={COLORS.card} />
+                        ) : (
+                            <Text style={styles.saveButtonText}>Save</Text>
+                        )}
                     </TouchableOpacity>
                 </View>
 
-                {/* Metadata Section */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>Title</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={title}
-                        onChangeText={setTitle}
-                        placeholder="Plan name"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        value={description}
-                        onChangeText={setDescription}
-                        placeholder="Short description"
-                    />
-
-                    {/* Active Switch */}
-                    <View style={styles.switchContainer}>
-                        <Text style={styles.label}>Active</Text>
-                        <Switch
-                            value={isActive}
-                            onValueChange={setIsActive}
-                            trackColor={{ false: "#767577", true: "#81b0ff" }}
-                            thumbColor={isActive ? "#2980b9" : "#f4f3f4"}
-                        />
-                    </View>
-                </View>
-
-                {/* Days Section */}
-                <Text style={styles.sectionTitle}>Days and Meals</Text>
-                {days.map((day, dayIndex) => (
-                    <View key={day._id || dayIndex} style={styles.dayCard}>
-                        <View style={styles.dayHeader}>
+                <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+                    {/* Metadata Section */}
+                    <Animated.View entering={FadeInDown.springify()} style={styles.section}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Title</Text>
                             <TextInput
-                                value={day.day}
-                                onChangeText={(t) => updateDayTitle(t, dayIndex)}
-                                style={styles.dayTitleInput}
+                                style={styles.input}
+                                value={title}
+                                onChangeText={setTitle}
+                                placeholder="My Weekly Plan"
+                                placeholderTextColor={COLORS.text.light}
                             />
-                            <TouchableOpacity onPress={() => removeDay(dayIndex)}>
-                                <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Description</Text>
+                            <TextInput
+                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                value={description}
+                                onChangeText={setDescription}
+                                placeholder="A healthy plan for this week..."
+                                placeholderTextColor={COLORS.text.light}
+                                multiline
+                            />
                         </View>
 
-                        {/* Meals List */}
-                        {day.meals.map((meal, mealIndex) => (
-                            <View key={meal._id || mealIndex} style={styles.mealRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.mealRecipe}>
-                                        {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
-                                    </Text>
+                        {/* Active Switch */}
+                        <View style={styles.switchContainer}>
+                            <View>
+                                <Text style={styles.switchLabel}>Active Plan</Text>
+                                <Text style={styles.switchSubLabel}>Make this your current plan</Text>
+                            </View>
+                            <Switch
+                                value={isActive}
+                                onValueChange={setIsActive}
+                                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                                thumbColor={COLORS.card}
+                            />
+                        </View>
+                    </Animated.View>
+
+                    {/* Days Section */}
+                    <Text style={styles.sectionTitle}>Days and Meals</Text>
+                    {days.map((day, dayIndex) => (
+                        <Animated.View
+                            key={day._id || dayIndex}
+                            entering={SlideInRight.delay(dayIndex * 100).springify()}
+                            exiting={SlideOutRight}
+                            style={styles.dayCard}
+                        >
+                            <View style={styles.dayHeader}>
+                                <View style={styles.dayTitleContainer}>
+                                    <Ionicons name="calendar-outline" size={20} color={COLORS.primary} style={{ marginRight: SPACING.s }} />
+                                    <TextInput
+                                        value={day.day}
+                                        onChangeText={(t) => updateDayTitle(t, dayIndex)}
+                                        style={styles.dayTitleInput}
+                                        placeholder="Day Name"
+                                        placeholderTextColor={COLORS.text.light}
+                                    />
                                 </View>
-                                <TouchableOpacity onPress={() => removeMeal(dayIndex, mealIndex)}>
-                                    <Ionicons name="close-circle" size={20} color="#bdc3c7" />
+                                <TouchableOpacity onPress={() => removeDay(dayIndex)} style={styles.iconButton}>
+                                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
                                 </TouchableOpacity>
                             </View>
-                        ))}
 
-                        <TouchableOpacity style={styles.addMealButton} onPress={() => openPicker(dayIndex)}>
-                            <Ionicons name="add" size={16} color="#2980b9" />
-                            <Text style={styles.addMealText}>Add Meal</Text>
-                        </TouchableOpacity>
-                    </View>
-                ))}
+                            {/* Meals List */}
+                            {day.meals.map((meal, mealIndex) => (
+                                <View key={meal._id || mealIndex} style={styles.mealRow}>
+                                    <View style={styles.mealInfo}>
+                                        <Ionicons name="restaurant-outline" size={16} color={COLORS.text.secondary} style={{ marginRight: SPACING.s }} />
+                                        <Text style={styles.mealRecipe}>
+                                            {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity onPress={() => removeMeal(dayIndex, mealIndex)} style={styles.iconButton}>
+                                        <Ionicons name="close-circle" size={20} color={COLORS.text.light} />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
 
-                <TouchableOpacity style={styles.addDayButton} onPress={addDay}>
-                    <Text style={styles.addDayText}>+ Add Day</Text>
-                </TouchableOpacity>
+                            <TouchableOpacity style={styles.addMealButton} onPress={() => openPicker(dayIndex)}>
+                                <Ionicons name="add" size={16} color={COLORS.primary} />
+                                <Text style={styles.addMealText}>Add Meal</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    ))}
 
-                <View style={{ height: 40 }} />
-            </ScrollView>
+                    <TouchableOpacity style={styles.addDayButton} onPress={addDay}>
+                        <Ionicons name="add-circle-outline" size={24} color={COLORS.primary} style={{ marginRight: SPACING.s }} />
+                        <Text style={styles.addDayText}>Add Day</Text>
+                    </TouchableOpacity>
 
-            <RecipePicker
-                visible={pickerVisible}
-                onClose={() => setPickerVisible(false)}
-                onSelect={handleSelectRecipe}
-            />
-        </KeyboardAvoidingView>
+                    <View style={{ height: 40 }} />
+                </ScrollView>
+
+                <RecipePicker
+                    visible={pickerVisible}
+                    onClose={() => setPickerVisible(false)}
+                    onSelect={handleSelectRecipe}
+                />
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { padding: 20 },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    header: { fontSize: 24, fontWeight: "700", color: "#2c3e50" },
-    saveLink: { fontSize: 18, color: "#2980b9", fontWeight: '600' },
-    section: { marginBottom: 24 },
-    label: { fontSize: 13, fontWeight: "600", color: "#7f8c8d", marginBottom: 6, marginTop: 12 },
-    input: {
-        backgroundColor: "#f8f9fa",
+    container: { padding: SPACING.m },
+    center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: COLORS.background },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.m,
+        paddingTop: SPACING.s,
+        paddingBottom: SPACING.m,
+        backgroundColor: COLORS.card,
         borderBottomWidth: 1,
-        borderBottomColor: "#bdc3c7",
-        paddingVertical: 8,
-        fontSize: 16,
-        color: "#2c3e50"
+        borderBottomColor: COLORS.border,
+        ...SHADOWS.small,
+        zIndex: 10,
+    },
+    backButton: {
+        padding: SPACING.xs,
+    },
+    headerTitle: {
+        fontSize: FONTS.sizes.h3,
+        fontWeight: '700',
+        color: COLORS.text.primary,
+    },
+    saveButton: {
+        backgroundColor: COLORS.primary,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: SPACING.s,
+    },
+    saveButtonText: {
+        color: COLORS.card,
+        fontWeight: '600',
+        fontSize: FONTS.sizes.body,
+    },
+    section: {
+        marginBottom: SPACING.l,
+        backgroundColor: COLORS.card,
+        padding: SPACING.m,
+        borderRadius: SPACING.m,
+        ...SHADOWS.small
+    },
+    inputGroup: {
+        marginBottom: SPACING.m,
+    },
+    label: {
+        fontSize: FONTS.sizes.small,
+        fontWeight: "600",
+        color: COLORS.text.secondary,
+        marginBottom: SPACING.xs
+    },
+    input: {
+        backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: SPACING.s,
+        padding: SPACING.s,
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.primary,
     },
     switchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 12,
+        marginTop: SPACING.s,
+        paddingTop: SPACING.s,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
     },
-    sectionTitle: { fontSize: 18, fontWeight: "600", color: "#2c3e50", marginBottom: 12 },
-
+    switchLabel: {
+        fontSize: FONTS.sizes.body,
+        fontWeight: '600',
+        color: COLORS.text.primary,
+    },
+    switchSubLabel: {
+        fontSize: FONTS.sizes.small,
+        color: COLORS.text.secondary,
+    },
+    sectionTitle: {
+        fontSize: FONTS.sizes.h3,
+        fontWeight: "700",
+        color: COLORS.text.primary,
+        marginBottom: SPACING.m
+    },
     dayCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#eef6fb',
-        shadowColor: "#000",
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        backgroundColor: COLORS.card,
+        borderRadius: SPACING.m,
+        padding: SPACING.m,
+        marginBottom: SPACING.m,
+        ...SHADOWS.small,
     },
     dayHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: SPACING.m,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        paddingBottom: 8,
+        borderBottomColor: COLORS.border,
+        paddingBottom: SPACING.s,
+    },
+    dayTitleContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     dayTitleInput: {
-        fontSize: 16,
+        fontSize: FONTS.sizes.body,
         fontWeight: '700',
-        color: '#2c3e50',
+        color: COLORS.text.primary,
         flex: 1,
     },
     mealRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#f9f9f9',
-        padding: 10,
-        borderRadius: 8,
-        marginBottom: 8,
+        backgroundColor: COLORS.background,
+        padding: SPACING.s,
+        borderRadius: SPACING.s,
+        marginBottom: SPACING.s,
     },
-    mealRecipe: { fontSize: 15, color: '#34495e' },
-
+    mealInfo: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    mealRecipe: {
+        fontSize: FONTS.sizes.body,
+        color: COLORS.text.primary
+    },
+    iconButton: {
+        padding: 4,
+    },
     addMealButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 8,
-        paddingVertical: 8,
+        marginTop: SPACING.s,
+        paddingVertical: SPACING.s,
         borderWidth: 1,
-        borderColor: '#eef6fb', // dashed?
-        borderRadius: 8,
+        borderColor: COLORS.primary,
+        borderRadius: SPACING.s,
         borderStyle: 'dashed',
     },
-    addMealText: { color: '#2980b9', marginLeft: 6, fontWeight: '500' },
-
+    addMealText: {
+        color: COLORS.primary,
+        marginLeft: 6,
+        fontWeight: '600',
+        fontSize: FONTS.sizes.body
+    },
     addDayButton: {
-        backgroundColor: '#e8f4fd',
-        padding: 16,
-        borderRadius: 12,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.card,
+        padding: SPACING.m,
+        borderRadius: SPACING.m,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
     },
-    addDayText: { color: '#2980b9', fontWeight: '700', fontSize: 16 },
-
-    saveButton: {
-        backgroundColor: "#2980b9",
-        paddingVertical: 14,
-        borderRadius: 12,
-        alignItems: "center",
-        marginTop: 10
+    addDayText: {
+        color: COLORS.primary,
+        fontWeight: '700',
+        fontSize: FONTS.sizes.body
     },
-    disabled: { opacity: 0.7 },
-    saveText: { color: "#fff", fontSize: 16, fontWeight: "600" }
 });
