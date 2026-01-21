@@ -46,7 +46,7 @@ function Sidebar() {
                 {/* User Profile */}
                 <View style={styles.profileSection}>
                     <Image
-                        source={{ uri: "https://i.pravatar.cc/300" }}  // Placeholder
+                        source={{ uri: "https://i.pravatar.cc/300" }}
                         style={styles.avatar}
                     />
                     <View>

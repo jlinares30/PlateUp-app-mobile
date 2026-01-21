@@ -9,7 +9,7 @@ export default function MenuButton() {
 
     return (
         <TouchableOpacity onPress={toggleSidebar} style={{ marginRight: 15 }}>
-            <Ionicons name="menu" size={28} color={COLORS.text.primary} />
+            <Ionicons name="menu" size={40} color={COLORS.text.primary} />
         </TouchableOpacity>
     );
 }
