@@ -1,27 +1,30 @@
-import { useAuthStore } from "@/src/store/useAuth";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useAuthStore } from "../../src/store/useAuth.js";
 
-export default function RegisterScreen() {
+export default function LoginScreen() {
   const router = useRouter();
-  const { register } = useAuthStore();
+  const { register, error, loading } = useAuthStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
-  const handleRegister = async () => {
-    const success = await register(email, password);
-    console.log(email, password);
-    if (success) {
+  const handleSignup = async () => {
+    const success = await register(name, email, password);
+    console.log(name, email, password);
+    if (success !== null) {
       router.push("./login");
-      console.log("Registration successful");
+      console.log("Login successful");
     } else {
       console.log(success);
-      console.log("Registration failed");
+      console.log("Login failedas");
     }
   };
+
+  const handleLogin = async () => {
+    router.replace("./login");
+  }
 
   return (
     <View style={styles.container}>
@@ -37,62 +40,75 @@ export default function RegisterScreen() {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
       />
       <TextInput
         placeholder="Password"
+        secureTextEntry
         style={styles.input}
         value={password}
         onChangeText={setPassword}
+      />
+      {/*       <TextInput
+        placeholder="Confirm Password"
         secureTextEntry
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.button}>
-      <Button title="Register" onPress={handleRegister} />
+        style={styles.input}
+      /> */}
+
+      <View style={styles.buttonContainer}>
+        <Button title="Sign up" onPress={handleSignup} />
       </View>
-      <View style={styles.buttonLogin}>
-      <Button 
-        title="Already have an account? Log in"
-        onPress={() => router.push("./login")}
-      />
+      <View style={styles.redirectContainer}>
+        <Text style={styles.redirectText}>Already have an account? </Text>
+        <TouchableOpacity onPress={handleLogin}>
+          <Text style={styles.redirectLink}>Log In</Text>
+        </TouchableOpacity>
       </View>
-    </View>);
+    </View>
+  );
 }
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#6bad00ff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#3e6f38ff',
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 34,
+    fontWeight: 'bold',
     marginBottom: 24,
-    textAlign: "center",
   },
   input: {
+    width: '100%',
+    height: 40,
+    backgroundColor: '#fff',
+    borderColor: '#ccc',
     borderWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
     borderRadius: 8,
-    padding: 12,
     marginBottom: 16,
+    paddingHorizontal: 10,
+  },
+  buttonContainer: {
+    width: '50%',
+    marginTop: 10,
+  },
+  redirectContainer: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  redirectText: {
+    color: 'black',
+    fontWeight: 'bold',
     fontSize: 16,
   },
-  error: {
-    color: "red",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-    button: {
-    marginTop: 10,
-    width: '50%',
-    alignSelf: 'center',
-  },
-    buttonLogin: {
-    top: 200,
+  redirectLink: {
+    color: '#abbef3ff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 10,
   },
 });
+

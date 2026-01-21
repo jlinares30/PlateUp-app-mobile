@@ -8,6 +8,7 @@
     "scheme": "mobileprototype1",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true
     },
