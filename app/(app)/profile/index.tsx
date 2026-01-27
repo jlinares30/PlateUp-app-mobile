@@ -1,9 +1,10 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from '@/src/store/useAuth';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function ProfileScreen() {
@@ -14,7 +15,21 @@ export default function ProfileScreen() {
     const [email, setEmail] = useState(user?.email || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [image, setImage] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+
+    const pickImage = async () => {
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images' as any,
+            allowsEditing: false,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
 
     const handleSave = async () => {
         if (password && password !== confirmPassword) {
@@ -22,22 +37,42 @@ export default function ProfileScreen() {
             return;
         }
 
-        const data: any = {};
-        if (name !== user?.name) data.name = name;
-        if (email !== user?.email) data.email = email;
-        if (password) data.password = password;
+        const formData = new FormData();
+        let hasChanges = false;
 
-        if (Object.keys(data).length === 0) {
+        if (name !== user?.name) {
+            formData.append('name', name);
+            hasChanges = true;
+        }
+        if (email !== user?.email) {
+            formData.append('email', email);
+            hasChanges = true;
+        }
+        if (password) {
+            formData.append('password', password);
+            hasChanges = true;
+        }
+        if (image) {
+            const filename = image.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename ?? "");
+            const type = match ? `image/${match[1]}` : `image`;
+            // @ts-ignore
+            formData.append('image', { uri: image, name: filename, type });
+            hasChanges = true;
+        }
+
+        if (!hasChanges) {
             setIsEditing(false);
             return;
         }
 
-        const success = await updateProfile(data);
+        const success = await updateProfile(formData);
         if (success) {
             Alert.alert('Success', 'Profile updated successfully');
             setIsEditing(false);
             setPassword('');
             setConfirmPassword('');
+            setImage(null);
         }
     };
 
@@ -47,13 +82,27 @@ export default function ProfileScreen() {
                 <View style={styles.content}>
                     <Animated.View entering={FadeInDown.springify()} style={styles.avatarContainer}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
-                            {!isEditing && (
+                            {image ? (
+                                <Image source={{ uri: image }} style={styles.avatarImage} />
+                            ) : user?.image ? (
+                                <Image source={{ uri: user.image }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
+                            )}
+
+                            {!isEditing ? (
                                 <TouchableOpacity
                                     style={styles.editIconBadge}
                                     onPress={() => setIsEditing(true)}
                                 >
                                     <Ionicons name="pencil" size={16} color={COLORS.card} />
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    style={styles.editIconBadge}
+                                    onPress={pickImage}
+                                >
+                                    <Ionicons name="camera" size={16} color={COLORS.card} />
                                 </TouchableOpacity>
                             )}
                         </View>
@@ -124,6 +173,7 @@ export default function ProfileScreen() {
                                 setEmail(user?.email || '');
                                 setPassword('');
                                 setConfirmPassword('');
+                                setImage(null);
                             }}>
                                 <Text style={styles.cancelText}>Cancel</Text>
                             </TouchableOpacity>
@@ -186,7 +236,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: SPACING.m,
-        ...SHADOWS.medium
+        ...SHADOWS.medium,
+        overflow: 'hidden',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
     },
     avatarText: {
         fontSize: 40,

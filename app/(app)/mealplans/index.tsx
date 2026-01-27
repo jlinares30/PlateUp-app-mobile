@@ -216,6 +216,16 @@ export default function MealPlansScreen() {
         <View style={{ flex: 1 }}>
           {renderContent()}
         </View>
+
+        {/* FAB for creating new plan */}
+        {activeTab === 'my-plans' && (
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => router.push("/mealplans/create")}
+          >
+            <Ionicons name="add" size={30} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -362,5 +372,18 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontSize: FONTS.sizes.body,
     lineHeight: 24,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: SPACING.m,
+    right: SPACING.m,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.medium,
+    zIndex: 100,
   },
 });

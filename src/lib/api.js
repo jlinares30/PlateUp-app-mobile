@@ -1,18 +1,19 @@
 import axios from "axios";
+import { useAuthStore } from "../store/useAuth";
 
 const api = axios.create({
   //for real device
   //baseURL: "http://192.168.105.204:5001/api",
+  baseURL: "http://192.168.1.33:5001/api",
 
   //for android emulator
-  baseURL: "http://10.0.2.2:5001/api",
-  timeout: 10000,
+  //baseURL: "http://10.0.2.2:5001/api",
+  timeout: 60000,
 });
 
 api.interceptors.request.use(async (config) => {
   try {
-    const { useAuthStore } = require("../store/useAuth");
-    const token = useAuthStore.getState().token;
+    const { token } = useAuthStore.getState();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,5 +22,37 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+// Añade interceptores para ver qué se está enviando
+api.interceptors.request.use(
+  (config) => {
+    console.log('📤 Request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      data: config.data instanceof FormData ? 'FormData' : config.data
+    });
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response) => {
+    console.log('✅ Response:', response.status);
+    return response;
+  },
+  (error) => {
+    console.error('❌ Response error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    return Promise.reject(error);
+  }
+);
 
 export default api;

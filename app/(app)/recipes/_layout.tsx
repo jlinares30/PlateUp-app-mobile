@@ -11,6 +11,10 @@ export default function RecipesLayout() {
         name="[id]"
         options={{ title: "Recipe Detail", headerShown: true }}
       />
+      <Stack.Screen
+        name="create"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

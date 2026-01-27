@@ -1,3 +1,11 @@
+export interface Ingredient {
+    _id: string;
+    name: string;
+    image?: string;
+    unit?: string;
+    category?: string;
+}
+
 export interface UserRef {
     _id: string;
     name: string;

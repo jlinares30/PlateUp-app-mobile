@@ -28,8 +28,10 @@ export default function LoginScreen() {
       return;
     }
     const success = await login(email, password);
+    console.log(email, password);
     if (success) {
       router.replace("/(app)");
+      console.log("Login successful");
     } else {
       Alert.alert("Login Failed", "Invalid credentials");
     }

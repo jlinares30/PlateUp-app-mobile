@@ -188,6 +188,14 @@ export default function RecipesScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Recipes</Text>
+        <Link href="/recipes/create" asChild>
+          <TouchableOpacity style={styles.backButton}>
+            <Ionicons name="add" size={28} color={COLORS.text.primary} />
+          </TouchableOpacity>
+        </Link>
+      </View>
       <View style={styles.content}>
         <View style={styles.ingredientSelector}>
           <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
