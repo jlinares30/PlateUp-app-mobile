@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -7,7 +8,8 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View,
+  TouchableOpacity,
+  View
 } from "react-native";
 import api from "../../../src/lib/api";
 
@@ -38,6 +40,17 @@ export default function RecipeDetailScreen() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const toggleFavorite = async () => {
+    if (!recipe) return;
+    try {
+      const res = await api.post(`/recipes/${recipe._id}/favorite`);
+      setIsFavorite(res.data.isFavorite);
+    } catch (e) {
+      console.error("Error toggling favorite:", e);
+    }
+  };
 
   const fetchRecipe = async (recipeId: string) => {
     setLoading(true);
@@ -47,7 +60,16 @@ export default function RecipeDetailScreen() {
       const data = res.data?.data ?? res.data;
 
       setRecipe(data);
-      //console.log("fetchRecipe data:", data);
+
+      // Check if favorite
+      try {
+        const userRes = await api.get('/auth/me'); // Or endpoint to get my favorites
+        const myFavorites = await api.get('/recipes/favorites/all');
+        const isFav = myFavorites.data.some((fav: any) => fav._id === recipeId);
+        setIsFavorite(isFav);
+      } catch (e) {
+        console.log("Could not check favorites");
+      }
     } catch (err: any) {
       console.error("fetchRecipe error:", err);
       setError(err?.response?.data?.message ?? err.message ?? "Error al cargar la receta");
@@ -101,7 +123,16 @@ export default function RecipeDetailScreen() {
       {recipe.imageUrl ? (
         <Image source={{ uri: recipe.imageUrl }} style={styles.image} />
       ) : null}
-      <Text style={styles.title}>{recipe.title}</Text>
+      <View style={styles.titleRow}>
+        <Text style={styles.title}>{recipe.title}</Text>
+        <TouchableOpacity onPress={toggleFavorite}>
+          <Ionicons
+            name={isFavorite ? "heart" : "heart-outline"}
+            size={28}
+            color={isFavorite ? "red" : "#2c3e50"}
+          />
+        </TouchableOpacity>
+      </View>
       {recipe.time ? <Text style={styles.time}>⏱ {recipe.time}</Text> : null}
       <Text style={styles.description}>{recipe.description}</Text>
 
@@ -120,8 +151,8 @@ export default function RecipeDetailScreen() {
           {recipe.steps?.map((step, idx) => (
             <Text key={idx} style={styles.listItem}>
               • {step}
-        </Text>
-        ))}
+            </Text>
+          ))}
         </>
       )}
     </ScrollView>
@@ -148,11 +179,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     resizeMode: "cover",
   },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   title: {
     fontSize: 24,
     fontWeight: "700",
-    marginBottom: 8,
     color: "#2c3e50",
+    flex: 1,
   },
   time: {
     fontSize: 13,
