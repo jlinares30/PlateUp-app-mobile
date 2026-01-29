@@ -4,12 +4,26 @@ export interface Ingredient {
     image?: string;
     unit?: string;
     category?: string;
+    calories?: number;
 }
 
 export interface UserRef {
     _id: string;
     name: string;
     email?: string;
+}
+
+export interface Recipe {
+    _id: string;
+    title: string;
+    description: string;
+    time: string;
+    matchPercentage?: number;
+    image?: string;
+    ingredients?: any[];
+    category?: string;
+    steps?: string[];
+    user?: string;
 }
 
 export interface RecipeRef {
@@ -20,13 +34,13 @@ export interface RecipeRef {
 }
 
 export interface Meal {
-    _id: string;
-    type: string;
+    _id?: string;
+    type: 'desayuno' | 'almuerzo' | 'cena' | 'snack' | string;
     recipe: RecipeRef | { _id: string; title: string };
 }
 
 export interface DayPlan {
-    _id: string;
+    _id?: string;
     day: string;
     meals: Meal[];
 }
@@ -40,13 +54,10 @@ export interface MealPlan {
     isActive?: boolean;
     isPublic?: boolean;
     isSystem?: boolean;
-    imageUrl?: string;
+    image?: string;
     createdAt?: string;
-
-    // Optional properties for UI handling
     ownerId?: string;
     owner?: any;
-    // Using loose type for compatibility or strictly enforcing it
 }
 
 export interface ShoppingListItem {

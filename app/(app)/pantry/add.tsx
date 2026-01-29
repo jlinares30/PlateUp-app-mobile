@@ -1,4 +1,5 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -17,15 +18,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 
-// Reuse ingredient interface or import from types if available
-interface Ingredient {
-    _id: string;
-    name: string;
-    category?: string;
-    calories?: number;
-    image?: string;
-    unit: string;
-}
 
 export default function PantryAddScreen() {
     const router = useRouter();
@@ -178,7 +170,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: SPACING.l,
-        paddingTop: SPACING.xl * 1.5,
+        paddingTop: SPACING.s,
         paddingBottom: SPACING.m,
         backgroundColor: COLORS.card,
         borderBottomWidth: 1,
