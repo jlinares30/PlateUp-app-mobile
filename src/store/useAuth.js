@@ -6,6 +6,7 @@ export const useAuthStore = create(persist((set) => ({
   user: null,
   email: null,
   token: null,
+  image: null,
   loading: false,
   error: null,
   login: async (email, password) => {
@@ -42,7 +43,7 @@ export const useAuthStore = create(persist((set) => ({
         },
       });
       console.log("[DEBUG] Update profile response:", response.data);
-      set({ user: response.data.user, loading: false });
+      set({ user: response.data.user, image: response.data.user.image, loading: false });
       return true;
     } catch (error) {
       console.error("[DEBUG] Profile update error:", error.response?.data || error.message);
