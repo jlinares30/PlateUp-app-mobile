@@ -1,9 +1,10 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, SlideOutRight } from 'react-native-reanimated';
 import api from '../../../src/lib/api';
 import { PantryItem } from '../../../src/types';
@@ -41,19 +42,31 @@ export default function PantryScreen() {
         },
     });
 
-    const handleRemove = (itemId: string) => {
-        Alert.alert(
-            "Remove Item",
-            "Are you sure you want to remove this item from your pantry?",
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
+    const confirmDelete = (id: string) => {
+        showAlert(
+            "Delete Item",
+            "Are you sure you want to delete this item?",
             [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Remove",
-                    style: "destructive",
-                    onPress: () => deleteMutation.mutate(itemId)
-                }
+                { text: "Cancel", style: "cancel", onPress: () => setModalVisible(false) },
+                { text: "Delete", onPress: () => { deleteMutation.mutate(id); setModalVisible(false); }, style: 'destructive' }
             ]
         );
+    };
+
+    const handleRemove = (itemId: string) => {
+        confirmDelete(itemId);
     };
 
     const handleQuantityChange = (item: PantryItem, newQuantity: number) => {
@@ -154,6 +167,13 @@ export default function PantryScreen() {
                     </TouchableOpacity>
                 </>
             )}
+            <ConfirmModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                actions={modalConfig.actions}
+            />
         </View>
     );
 }

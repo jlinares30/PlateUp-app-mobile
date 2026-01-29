@@ -1,3 +1,4 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5,7 +6,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -78,8 +78,20 @@ export default function EditMealPlanScreen() {
     const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
     const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
     const handleImageSelection = async () => {
-        Alert.alert(
+        showAlert(
             "Meal Plan Photo",
             "Choose an option",
             [
@@ -94,7 +106,7 @@ export default function EditMealPlanScreen() {
         if (!cameraPermission?.granted) {
             const permission = await requestCameraPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "Camera access is required to take photos.");
+                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -115,7 +127,7 @@ export default function EditMealPlanScreen() {
         if (!libraryPermission?.granted) {
             const permission = await requestLibraryPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "You need to allow access to your photos to select an image.");
+                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -404,6 +416,14 @@ export default function EditMealPlanScreen() {
                     visible={pickerVisible}
                     onClose={() => setPickerVisible(false)}
                     onSelect={handleSelectRecipe}
+                />
+
+                <ConfirmModal
+                    visible={modalVisible}
+                    onClose={() => setModalVisible(false)}
+                    title={modalConfig.title}
+                    message={modalConfig.message}
+                    actions={modalConfig.actions}
                 />
             </KeyboardAvoidingView>
         </SafeAreaView>

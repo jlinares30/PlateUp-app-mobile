@@ -1,11 +1,11 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
-  Alert,
   FlatList,
   StyleSheet,
   Text,
@@ -44,6 +44,18 @@ export default function ShoppingCart() {
       return res.data ?? [];
     }
   });
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    actions: [] as ModalAction[]
+  });
+
+  const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+    setModalConfig({ title, message, actions });
+    setModalVisible(true);
+  };
 
   // 2. Mutations
   const updateMutation = useMutation({
@@ -150,14 +162,14 @@ export default function ShoppingCart() {
   };
 
   const handleRemove = (itemId: string) => {
-    Alert.alert("Remove", "Remove this item from shopping list?", [
+    showAlert("Remove", "Remove this item from shopping list?", [
       { text: "Cancel", style: "cancel" },
       { text: "Remove", style: "destructive", onPress: () => removeMutation.mutate(itemId) }
     ]);
   };
 
   const handleClearAll = () => {
-    Alert.alert("Clear List", "Are you sure you want to remove all items?", [
+    showAlert("Clear List", "Are you sure you want to remove all items?", [
       { text: "Cancel", style: "cancel" },
       { text: "Clear All", style: "destructive", onPress: () => clearAllMutation.mutate() }
     ]);
@@ -285,6 +297,14 @@ export default function ShoppingCart() {
       >
         <Ionicons name="add" size={28} color={COLORS.card} />
       </TouchableOpacity>
+
+      <ConfirmModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        actions={modalConfig.actions}
+      />
     </View>
   );
 }

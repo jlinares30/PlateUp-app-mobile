@@ -1,3 +1,4 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
 import { normalizeTags } from "@/src/lib/utils";
@@ -9,7 +10,6 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Image,
     RefreshControl,
@@ -60,6 +60,18 @@ export default function MyRecipesScreen() {
         enabled: !!user
     });
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
     const isLoading = loadingMy || loadingFavorites;
     const isRefreshing = refetchingMy || refetchingFavorites;
 
@@ -82,7 +94,7 @@ export default function MyRecipesScreen() {
     });
 
     const handleDelete = (id: string) => {
-        Alert.alert(
+        showAlert(
             "Delete Recipe",
             "Are you sure you want to delete this recipe?",
             [
@@ -217,6 +229,13 @@ export default function MyRecipesScreen() {
                     </TouchableOpacity>
                 )}
             </View>
+            <ConfirmModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                actions={modalConfig.actions}
+            />
         </View>
     );
 }

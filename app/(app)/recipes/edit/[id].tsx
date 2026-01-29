@@ -1,4 +1,4 @@
-
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import IngredientSelector from "@/src/components/IngredientSelector";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
@@ -10,7 +10,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     ScrollView,
     StyleSheet,
@@ -79,11 +78,23 @@ export default function EditRecipeScreen() {
         }
     }, [recipe]);
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
     const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
     const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
     const handleImageSelection = async () => {
-        Alert.alert(
+        showAlert(
             "Recipe Photo",
             "Choose an option",
             [
@@ -98,7 +109,7 @@ export default function EditRecipeScreen() {
         if (!cameraPermission?.granted) {
             const permission = await requestCameraPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "Camera access is required to take photos.");
+                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -120,7 +131,7 @@ export default function EditRecipeScreen() {
         if (!libraryPermission?.granted) {
             const permission = await requestLibraryPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "You need to allow access to your photos to select an image.");
+                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -444,6 +455,14 @@ export default function EditRecipeScreen() {
                 visible={showIngredientSelector}
                 onClose={() => setShowIngredientSelector(false)}
                 onSelect={addIngredient}
+            />
+
+            <ConfirmModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                actions={modalConfig.actions}
             />
         </View>
     );

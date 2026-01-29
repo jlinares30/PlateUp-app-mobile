@@ -1,3 +1,4 @@
+import ConfirmModal from '@/src/components/ConfirmModal';
 import IngredientSelector from "@/src/components/IngredientSelector";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
@@ -37,11 +38,24 @@ export default function CreateRecipeScreen() {
   const [isPublic, setIsPublic] = useState(false);
   const [tags, setTags] = useState("");
 
+  const [modalVisible, setModalVisible] = useState(false);
+  type ModalAction = { text: string; onPress?: () => void; style?: "default" | "cancel" | "destructive" };
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    actions: [] as ModalAction[]
+  });
+
+  const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+    setModalConfig({ title, message, actions });
+    setModalVisible(true);
+  };
+
   const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
   const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
   const handleImageSelection = async () => {
-    Alert.alert(
+    showAlert(
       "Recipe Photo",
       "Choose an option",
       [
@@ -56,7 +70,7 @@ export default function CreateRecipeScreen() {
     if (!cameraPermission?.granted) {
       const permission = await requestCameraPermission();
       if (!permission.granted) {
-        Alert.alert("Permission required", "Camera access is required to take photos.");
+        showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
         return;
       }
     }
@@ -159,19 +173,12 @@ export default function CreateRecipeScreen() {
   });
 
   const handleSubmit = () => {
-    if (!title || !time || !category) {
+    if (!title || !time || !category || !steps || !category || !ingredients.length) {
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: "Please fill in required fields (Title, Time, Category)"
+        text2: "Please fill in required fields (Title, Time, Category, Steps, Ingredients)"
       });
-      return;
-    }
-    if (ingredients.length === 0) {
-      Alert.alert("Warning", "You haven't added any ingredients. Continue?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "Yes", onPress: () => createMutation.mutate() }
-      ]);
       return;
     }
     createMutation.mutate();
@@ -395,6 +402,14 @@ export default function CreateRecipeScreen() {
         visible={showIngredientSelector}
         onClose={() => setShowIngredientSelector(false)}
         onSelect={addIngredient}
+      />
+
+      <ConfirmModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        actions={modalConfig.actions}
       />
     </View>
   );

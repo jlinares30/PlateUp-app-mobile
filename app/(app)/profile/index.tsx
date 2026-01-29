@@ -1,3 +1,4 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from '@/src/store/useAuth';
@@ -5,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 
@@ -23,8 +24,20 @@ export default function ProfileScreen() {
     const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
     const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
     const handleImageSelection = async () => {
-        Alert.alert(
+        showAlert(
             "Profile Photo",
             "Choose an option",
             [
@@ -39,7 +52,7 @@ export default function ProfileScreen() {
         if (!cameraPermission?.granted) {
             const permission = await requestCameraPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "Camera access is required to take photos.");
+                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -60,7 +73,7 @@ export default function ProfileScreen() {
         if (!mediaPermission?.granted) {
             const permission = await requestMediaPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "You need to allow access to your photos to select an image.");
+                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -273,6 +286,14 @@ export default function ProfileScreen() {
                     )}
                 </TouchableOpacity>
             )}
+
+            <ConfirmModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                actions={modalConfig.actions}
+            />
         </View>
     );
 }

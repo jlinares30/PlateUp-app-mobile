@@ -1,3 +1,4 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import RecipePicker from "@/src/components/RecipePicker";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
@@ -9,7 +10,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     SafeAreaView,
     ScrollView,
@@ -41,12 +41,24 @@ export default function CreateMealPlanScreen() {
     const [pickerVisible, setPickerVisible] = useState(false);
     const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
 
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
     // Permission hooks
     const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
     const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
 
     const handleImageSelection = async () => {
-        Alert.alert(
+        showAlert(
             "Meal Plan Photo",
             "Choose an option",
             [
@@ -61,7 +73,7 @@ export default function CreateMealPlanScreen() {
         if (!cameraPermission?.granted) {
             const permission = await requestCameraPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "Camera access is required to take photos.");
+                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -82,7 +94,7 @@ export default function CreateMealPlanScreen() {
         if (!libraryPermission?.granted) {
             const permission = await requestLibraryPermission();
             if (!permission.granted) {
-                Alert.alert("Permission required", "You need to allow access to your photos to select an image.");
+                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
                 return;
             }
         }
@@ -218,7 +230,7 @@ export default function CreateMealPlanScreen() {
     });
 
     const handleSubmit = () => {
-        if (!title) {
+        if (!title || !days.length || !days.every(day => day.meals.length > 0)) {
             Toast.show({
                 type: 'error',
                 text1: 'Error',
@@ -271,7 +283,7 @@ export default function CreateMealPlanScreen() {
                     </View>
 
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Descriptiouyjg</Text>
+                        <Text style={styles.label}>Description</Text>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={description}
@@ -370,6 +382,14 @@ export default function CreateMealPlanScreen() {
                 visible={pickerVisible}
                 onClose={() => setPickerVisible(false)}
                 onSelect={handleSelectRecipe}
+            />
+
+            <ConfirmModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                actions={modalConfig.actions}
             />
         </SafeAreaView>
     );

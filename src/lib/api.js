@@ -2,12 +2,9 @@ import axios from "axios";
 import { useAuthStore } from "../store/useAuth";
 
 const api = axios.create({
-  //for real device
-  //baseURL: "http://192.168.105.204:5001/api",
-  baseURL: "http://192.168.1.33:5001/api",
-
-  //for android emulator
-  //baseURL: "http://10.0.2.2:5001/api",
+  baseURL: __DEV__
+    ? process.env.EXPO_PUBLIC_API_URL_DEV
+    : process.env.EXPO_PUBLIC_API_URL_PROD,
   timeout: 60000,
 });
 
