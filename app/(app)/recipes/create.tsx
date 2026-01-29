@@ -13,6 +13,7 @@ import {
   Image,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -33,6 +34,7 @@ export default function CreateRecipeScreen() {
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState("Medium");
   const [image, setImage] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -66,6 +68,7 @@ export default function CreateRecipeScreen() {
       formData.append("time", time);
       formData.append("category", category);
       formData.append("difficulty", difficulty);
+      formData.append("isPublic", String(isPublic));
 
       if (image) {
         const uriParts = image.split('.');
@@ -211,13 +214,23 @@ export default function CreateRecipeScreen() {
           </View>
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Category *</Text>
-            <TextInput
-              style={styles.input}
-              value={category}
-              onChangeText={setCategory}
-              placeholder="e.g. Dinner"
-              placeholderTextColor={COLORS.text.light}
-            />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.difficultyChip,
+                    category === cat && styles.difficultyChipActive
+                  ]}
+                  onPress={() => setCategory(cat)}
+                >
+                  <Text style={[
+                    styles.difficultyText,
+                    category === cat && styles.difficultyTextActive
+                  ]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
 
@@ -240,6 +253,21 @@ export default function CreateRecipeScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        <View style={styles.formGroup}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.label}>Visibility</Text>
+            <Switch
+              value={isPublic}
+              onValueChange={setIsPublic}
+              trackColor={{ false: COLORS.border, true: COLORS.primary }}
+              thumbColor="#fff"
+            />
+          </View>
+          <Text style={{ color: COLORS.text.secondary, fontSize: FONTS.sizes.small }}>
+            {isPublic ? "Public: Everyone can see this recipe" : "Private: Only you can see this recipe"}
+          </Text>
         </View>
 
         <View style={styles.formGroup}>
@@ -324,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.m,
-    paddingTop: SPACING.xl * 1.5,
+    paddingTop: SPACING.s,
     paddingBottom: SPACING.m,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,

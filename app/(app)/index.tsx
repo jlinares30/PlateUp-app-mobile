@@ -3,10 +3,15 @@ import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from "@/src/store/useAuth";
 import { Href, useRouter } from "expo-router";
 import { Box, Calendar, ChefHat, Search, ShoppingBag, User as UserIcon } from "lucide-react-native";
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
+
+const AnimatedView = Animated.createAnimatedComponent(View);
+
+import api from "@/src/lib/api";
+import { useQuery } from '@tanstack/react-query';
 
 export default function AppHome() {
   const router = useRouter();
@@ -16,6 +21,16 @@ export default function AppHome() {
     logout();
     router.replace("/(auth)/login");
   }
+
+  // Fetch Dashboard Stats
+  const { data: stats } = useQuery({
+    queryKey: ['dashboardStats'],
+    queryFn: async () => {
+      const res = await api.get('/stats');
+      return res.data?.data ?? { recipesCount: 0, plansCount: 0, favoritesCount: 0 };
+    },
+    refetchOnMount: true
+  });
 
   const menuItems = [
     {
@@ -81,7 +96,7 @@ export default function AppHome() {
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
-    <Animated.View
+    <AnimatedView
       key={item.id}
       entering={FadeInDown.delay(item.delay).duration(400).springify().damping(18)}
       style={{ width: '48%', marginBottom: SPACING.m }}
@@ -97,7 +112,7 @@ export default function AppHome() {
         <Text style={styles.menuTitle}>{item.title}</Text>
         <Text style={styles.menuDescription} numberOfLines={1}>{item.description}</Text>
       </TouchableOpacity>
-    </Animated.View>
+    </AnimatedView>
   );
 
   return (
@@ -107,29 +122,38 @@ export default function AppHome() {
         <View style={{ marginRight: SPACING.m }}>
           <MenuButton />
         </View>
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.welcomeContainer}>
+        <AnimatedView entering={FadeInDown.duration(400)} style={styles.welcomeContainer}>
           <Text style={styles.subtitleText}>Good Morning,</Text>
           <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
-        </Animated.View>
-        <Animated.View entering={FadeInDown.delay(100).duration(400)}>
+        </AnimatedView>
+        <AnimatedView entering={FadeInDown.delay(100).duration(400)}>
           <TouchableOpacity
             style={styles.avatar}
             onPress={() => {
               router.push('/profile');
             }}
           >
-            <Text style={styles.avatarText}>{user?.image ? user?.image : user?.name?.charAt(0)}</Text>
+            {
+              user?.image ? (
+                <Image
+                  source={{ uri: user?.image }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarText}>{user?.name?.charAt(0)}</Text>
+              )
+            }
           </TouchableOpacity>
-        </Animated.View>
+        </AnimatedView>
       </View>
 
       {/* Hero Section */}
-      <Animated.View entering={FadeInUp.delay(150).springify().damping(18)} style={styles.heroSection}>
+      <AnimatedView entering={FadeInUp.delay(150).springify().damping(18)} style={styles.heroSection}>
         <View style={styles.heroContent}>
           <Text style={styles.heroTitle}>What's cooking?</Text>
           <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
         </View>
-      </Animated.View>
+      </AnimatedView>
 
       {/* Menu Grid */}
       <View style={styles.menuSection}>
@@ -140,22 +164,22 @@ export default function AppHome() {
       </View>
 
       {/* Stats Quick View */}
-      <Animated.View entering={FadeInDown.delay(200).springify().damping(18)} style={styles.statsContainer}>
-        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
-          <Text style={[styles.statNumber, { color: COLORS.accent }]}>12</Text>
+      <AnimatedView entering={FadeInDown.delay(200).springify().damping(18)} style={styles.statsContainer}>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/recipes/my-recipes')}>
+          <Text style={[styles.statNumber, { color: COLORS.accent }]}>{stats?.recipesCount ?? 0}</Text>
           <Text style={styles.statLabel}>Recipes</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
-        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
-          <Text style={[styles.statNumber, { color: COLORS.warning }]}>5</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/recipes/my-recipes')}>
+          <Text style={[styles.statNumber, { color: COLORS.warning }]}>{stats?.favoritesCount ?? 0}</Text>
+          <Text style={styles.statLabel}>Favorites</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
-        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
-          <Text style={[styles.statNumber, { color: COLORS.secondary }]}>3</Text>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/mealplans')}>
+          <Text style={[styles.statNumber, { color: COLORS.secondary }]}>{stats?.plansCount ?? 0}</Text>
           <Text style={styles.statLabel}>Plans</Text>
         </TouchableOpacity>
-      </Animated.View>
+      </AnimatedView>
     </ScrollView>
   );
 }
@@ -309,5 +333,10 @@ const styles = StyleSheet.create({
   menuDescription: {
     fontSize: FONTS.sizes.tiny,
     color: COLORS.text.secondary,
-  }
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+  },
 });

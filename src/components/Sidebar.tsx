@@ -46,12 +46,12 @@ function Sidebar() {
                 {/* User Profile */}
                 <View style={styles.profileSection}>
                     <Image
-                        source={{ uri: "https://i.pravatar.cc/300" }}
+                        source={{ uri: user?.image || "U" }}
                         style={styles.avatar}
                     />
                     <View>
                         <Text style={styles.userName}>{user?.name || "Guest"}</Text>
-                        <Text style={styles.userRole}>Premium Chef</Text>
+                        {/* <Text style={styles.userRole}>Premium Chef</Text> */}
                     </View>
                 </View>
 
