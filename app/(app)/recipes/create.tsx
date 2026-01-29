@@ -35,6 +35,7 @@ export default function CreateRecipeScreen() {
   const [difficulty, setDifficulty] = useState("Medium");
   const [image, setImage] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
+  const [tags, setTags] = useState("");
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library
@@ -69,6 +70,9 @@ export default function CreateRecipeScreen() {
       formData.append("category", category);
       formData.append("difficulty", difficulty);
       formData.append("isPublic", String(isPublic));
+
+      const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
+      formData.append("tags", JSON.stringify(tagsArray));
 
       if (image) {
         const uriParts = image.split('.');
@@ -302,6 +306,17 @@ export default function CreateRecipeScreen() {
           {ingredients.length === 0 && (
             <Text style={styles.placeholderText}>No ingredients added yet.</Text>
           )}
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Tags (comma separated)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. Healthy, Italian, Quick"
+            placeholderTextColor={COLORS.text.light}
+            onChangeText={text => setTags(text)}
+            value={tags}
+          />
         </View>
 
         {/* Simplified Steps Input */}

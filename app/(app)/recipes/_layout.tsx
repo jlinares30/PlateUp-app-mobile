@@ -16,6 +16,10 @@ export default function RecipesLayout() {
         options={{ title: "Edit Recipe", headerShown: false }}
       />
       <Stack.Screen
+        name="create"
+        options={{ title: "Create Recipe", headerShown: false }}
+      />
+      <Stack.Screen
         name="my-recipes"
         options={{ title: "My Recipes", headerShown: false }}
       />
