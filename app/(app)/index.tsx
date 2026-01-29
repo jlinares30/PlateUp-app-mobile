@@ -13,6 +13,13 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 import api from "@/src/lib/api";
 import { useQuery } from '@tanstack/react-query';
 
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 18) return "Good Afternoon";
+  return "Good Evening";
+};
+
 export default function AppHome() {
   const router = useRouter();
   const { logout, user } = useAuthStore();
@@ -123,7 +130,7 @@ export default function AppHome() {
           <MenuButton />
         </View>
         <AnimatedView entering={FadeInDown.duration(400)} style={styles.welcomeContainer}>
-          <Text style={styles.subtitleText}>Good Morning,</Text>
+          <Text style={styles.subtitleText}>{getGreeting()},</Text>
           <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
         </AnimatedView>
         <AnimatedView entering={FadeInDown.delay(100).duration(400)}>
@@ -150,6 +157,10 @@ export default function AppHome() {
       {/* Hero Section */}
       <AnimatedView entering={FadeInUp.delay(150).springify().damping(18)} style={styles.heroSection}>
         <View style={styles.heroContent}>
+          <Image
+            source={require("@/assets/images/logo_plateup-removebg.png")}
+            style={{ width: 60, height: 60, resizeMode: 'contain', marginBottom: SPACING.s, tintColor: COLORS.card }}
+          />
           <Text style={styles.heroTitle}>What's cooking?</Text>
           <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
         </View>

@@ -1,10 +1,10 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -45,7 +45,10 @@ export default function LoginScreen() {
       >
         <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.card}>
           <View style={styles.headerContainer}>
-            <Ionicons name="nutrition" size={64} color={COLORS.primary} />
+            <Image
+              source={require("@/assets/images/logo_plateup-removebg.png")}
+              style={{ width: 150, height: 150, resizeMode: 'contain', marginBottom: SPACING.s }}
+            />
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to continue your healthy journey</Text>
           </View>
