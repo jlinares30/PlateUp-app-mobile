@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 
@@ -20,10 +20,54 @@ export default function ProfileScreen() {
     const [image, setImage] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
 
-    const pickImage = async () => {
+    const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+    const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
+
+    const handleImageSelection = async () => {
+        Alert.alert(
+            "Profile Photo",
+            "Choose an option",
+            [
+                { text: "Camera", onPress: openCamera },
+                { text: "Gallery", onPress: showImagePicker },
+                { text: "Cancel", style: "cancel" }
+            ]
+        );
+    };
+
+    const openCamera = async () => {
+        if (!cameraPermission?.granted) {
+            const permission = await requestCameraPermission();
+            if (!permission.granted) {
+                Alert.alert("Permission required", "Camera access is required to take photos.");
+                return;
+            }
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: 'images',
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
+
+    const showImagePicker = async () => {
+        if (!mediaPermission?.granted) {
+            const permission = await requestMediaPermission();
+            if (!permission.granted) {
+                Alert.alert("Permission required", "You need to allow access to your photos to select an image.");
+                return;
+            }
+        }
+
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: 'images' as any,
-            allowsEditing: false,
+            mediaTypes: 'images',
+            allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
         });
@@ -134,7 +178,7 @@ export default function ProfileScreen() {
                             ) : (
                                 <TouchableOpacity
                                     style={styles.editIconBadge}
-                                    onPress={pickImage}
+                                    onPress={handleImageSelection}
                                 >
                                     <Ionicons name="camera" size={16} color={COLORS.card} />
                                 </TouchableOpacity>
@@ -260,7 +304,7 @@ const styles = StyleSheet.create({
     },
     avatarContainer: {
         alignItems: 'center',
-        marginBottom: SPACING.l,
+        marginBottom: SPACING.l
     },
     avatar: {
         width: 100,
@@ -271,11 +315,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: SPACING.m,
         ...SHADOWS.medium,
-        overflow: 'hidden',
     },
     avatarImage: {
         width: '100%',
         height: '100%',
+        borderRadius: 50,
     },
     avatarText: {
         fontSize: 40,

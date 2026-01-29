@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     Image,
     ScrollView,
     StyleSheet,
@@ -78,9 +79,54 @@ export default function EditRecipeScreen() {
         }
     }, [recipe]);
 
+    const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+    const [libraryPermission, requestLibraryPermission] = ImagePicker.useMediaLibraryPermissions();
+
+    const handleImageSelection = async () => {
+        Alert.alert(
+            "Recipe Photo",
+            "Choose an option",
+            [
+                { text: "Camera", onPress: openCamera },
+                { text: "Gallery", onPress: pickImage },
+                { text: "Cancel", style: "cancel" }
+            ]
+        );
+    };
+
+    const openCamera = async () => {
+        if (!cameraPermission?.granted) {
+            const permission = await requestCameraPermission();
+            if (!permission.granted) {
+                Alert.alert("Permission required", "Camera access is required to take photos.");
+                return;
+            }
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: 'images',
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+            setNewImagePicked(true);
+        }
+    };
+
     const pickImage = async () => {
+        if (!libraryPermission?.granted) {
+            const permission = await requestLibraryPermission();
+            if (!permission.granted) {
+                Alert.alert("Permission required", "You need to allow access to your photos to select an image.");
+                return;
+            }
+        }
+
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
+            mediaTypes: 'images',
             allowsEditing: true,
             aspect: [4, 3],
             quality: 0.8,
@@ -216,7 +262,7 @@ export default function EditRecipeScreen() {
 
             <ScrollView contentContainerStyle={styles.content}>
                 {/* Image Picker */}
-                <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                <TouchableOpacity style={styles.imagePicker} onPress={handleImageSelection}>
                     {image ? (
                         <Image source={{ uri: image }} style={styles.imagePreview} />
                     ) : (
