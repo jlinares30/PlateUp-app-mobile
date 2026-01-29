@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -22,6 +23,8 @@ import RecipePicker from "../../../../src/components/RecipePicker";
 import api from "../../../../src/lib/api";
 import { DayPlan } from "../../../../src/types";
 
+import * as ImagePicker from 'expo-image-picker';
+
 export default function EditMealPlanScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
@@ -30,8 +33,10 @@ export default function EditMealPlanScreen() {
     const [saving, setSaving] = useState(false);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [image, setImage] = useState<string | null>(null);
     const [days, setDays] = useState<DayPlan[]>([]);
     const [isActive, setIsActive] = useState(false);
+    const [isPublic, setIsPublic] = useState(false);
     const queryClient = useQueryClient();
 
     // Picker State
@@ -50,6 +55,8 @@ export default function EditMealPlanScreen() {
                 setTitle(data.title);
                 setDescription(data.description || "");
                 setIsActive(!!data.isActive);
+                setIsPublic(!!data.isPublic);
+                setImage(data.image || null); // Load existing image
                 if (Array.isArray(data.days)) {
                     setDays(data.days);
                 } else {
@@ -63,10 +70,60 @@ export default function EditMealPlanScreen() {
         }
     };
 
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images' as any,
+            allowsEditing: true, // Allow cropping for better cover photos
+            aspect: [4, 3],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
+
     const updateMutation = useMutation({
-        mutationFn: async (payload: any) => {
-            const res = await api.put(`/meal-plans/${id}`, payload);
-            return res.data;
+        mutationFn: async () => {
+            const formattedDays = days.map(d => ({
+                day: d.day,
+                meals: d.meals.map(m => ({
+                    type: ["breakfast", "lunch", "dinner", "snack"].includes(m.type.toLowerCase()) ? m.type.toLowerCase() : "lunch",
+                    recipe: m.recipe._id
+                }))
+            }));
+
+            // Check if image is a local file (needing upload)
+            const isNewImage = image && !image.startsWith('http');
+
+            if (isNewImage) {
+                const formData = new FormData();
+                formData.append("title", title);
+                formData.append("description", description);
+                formData.append("isActive", String(isActive));
+                formData.append("isPublic", String(isPublic));
+                formData.append("days", JSON.stringify(formattedDays));
+
+                const filename = image.split('/').pop();
+                const match = /\.(\w+)$/.exec(filename ?? "");
+                const type = match ? `image/${match[1]}` : `image`;
+                formData.append('image', { uri: image, name: filename, type } as any);
+
+                const res = await api.put(`/meal-plans/${id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                return res.data;
+            } else {
+                const payload = {
+                    title,
+                    description,
+                    isActive,
+                    isPublic,
+                    days: formattedDays
+                };
+                const res = await api.put(`/meal-plans/${id}`, payload);
+                return res.data;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
@@ -85,22 +142,7 @@ export default function EditMealPlanScreen() {
             Alert.alert("Error", "Title is required.");
             return;
         }
-
-        const payload = {
-            title,
-            description,
-            isActive,
-            days: days.map(d => ({
-                day: d.day,
-                meals: d.meals.map(m => ({
-                    // Validar enum: si no es válido, usar 'lunch' por defecto
-                    type: ["breakfast", "lunch", "dinner", "snack"].includes(m.type.toLowerCase()) ? m.type.toLowerCase() : "lunch",
-                    recipe: m.recipe._id // Enviar solo el ID
-                }))
-            })),
-        };
-
-        updateMutation.mutate(payload);
+        updateMutation.mutate();
     };
 
     const addDay = () => {
@@ -174,6 +216,18 @@ export default function EditMealPlanScreen() {
                 </View>
 
                 <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+                    {/* Image Picker */}
+                    <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+                        {image ? (
+                            <Image source={{ uri: image }} style={styles.imagePreview} />
+                        ) : (
+                            <View style={styles.imagePlaceholder}>
+                                <Ionicons name="camera" size={40} color={COLORS.text.light} />
+                                <Text style={styles.imagePlaceholderText}>Change Cover Photo</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
                     {/* Metadata Section */}
                     <Animated.View entering={FadeInDown.springify()} style={styles.section}>
                         <View style={styles.inputGroup}>
@@ -207,6 +261,20 @@ export default function EditMealPlanScreen() {
                             <Switch
                                 value={isActive}
                                 onValueChange={setIsActive}
+                                trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                                thumbColor={COLORS.card}
+                            />
+                        </View>
+
+                        {/* Public Switch */}
+                        <View style={styles.switchContainer}>
+                            <View>
+                                <Text style={styles.switchLabel}>Public Plan</Text>
+                                <Text style={styles.switchSubLabel}>Allow others to see this plan</Text>
+                            </View>
+                            <Switch
+                                value={isPublic}
+                                onValueChange={setIsPublic}
                                 trackColor={{ false: COLORS.border, true: COLORS.primary }}
                                 thumbColor={COLORS.card}
                             />
@@ -311,6 +379,31 @@ const styles = StyleSheet.create({
     saveButtonText: {
         color: COLORS.card,
         fontWeight: '600',
+        fontSize: FONTS.sizes.body,
+    },
+    imagePicker: {
+        width: '100%',
+        height: 200,
+        backgroundColor: COLORS.card,
+        borderRadius: SPACING.m,
+        marginBottom: SPACING.m,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+    },
+    imagePreview: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePlaceholder: {
+        alignItems: 'center',
+    },
+    imagePlaceholderText: {
+        marginTop: SPACING.s,
+        color: COLORS.text.light,
         fontSize: FONTS.sizes.body,
     },
     section: {
