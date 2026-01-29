@@ -1,5 +1,6 @@
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
@@ -10,22 +11,7 @@ import Toast from 'react-native-toast-message';
 import SwipeableRow from "../../../src/components/SwipeableRow";
 import api from "../../../src/lib/api";
 
-interface Recipe {
-  _id: string;
-  title: string;
-  description: string;
-  time: string;
-  matchPercentage: number;
-  imageUrl?: string;
-  ingredients?: any[];
-}
 
-interface Ingredient {
-  _id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-}
 
 const RecipeSkeleton = () => (
   <View style={[styles.recipeCard, { marginBottom: SPACING.m }]}>
@@ -181,7 +167,7 @@ export default function RecipesScreen() {
         <Link href={`/recipes/${item._id}`} asChild>
           <TouchableOpacity style={styles.recipeCard} activeOpacity={0.9}>
             <Image
-              source={{ uri: item.imageUrl || "https://via.placeholder.com/300" }}
+              source={{ uri: item.image || "https://via.placeholder.com/300" }}
               style={styles.cardImage}
             />
             <View style={styles.recipeContent}>
@@ -220,11 +206,18 @@ export default function RecipesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Recipes</Text>
-        <Link href="/recipes/create" asChild>
-          <TouchableOpacity style={styles.backButton}>
-            <Ionicons name="add" size={28} color={COLORS.text.primary} />
-          </TouchableOpacity>
-        </Link>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Link href="/recipes/my-recipes" asChild>
+            <TouchableOpacity style={styles.backButton}>
+              <Ionicons name="bookmarks-outline" size={24} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </Link>
+          <Link href="/recipes/create" asChild>
+            <TouchableOpacity style={styles.backButton}>
+              <Ionicons name="add" size={28} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </Link>
+        </View>
       </View>
       <View style={styles.content}>
         <View style={styles.ingredientSelector}>
@@ -324,7 +317,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.m,
-    paddingTop: SPACING.xl * 1.5,
+    paddingTop: SPACING.s,
     paddingBottom: SPACING.m,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
@@ -453,7 +446,7 @@ const styles = StyleSheet.create({
   },
   recipeCard: {
     backgroundColor: COLORS.card,
-    borderRadius: SPACING.l,
+    borderRadius: SPACING.s,
     overflow: "hidden",
     ...SHADOWS.medium,
   },

@@ -1,6 +1,7 @@
 import RecipePicker from "@/src/components/RecipePicker";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
+import { DayPlan, Meal } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from 'expo-image-picker';
@@ -22,17 +23,7 @@ import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
 
 import Toast from 'react-native-toast-message';
 
-interface Meal {
-    type: 'desayuno' | 'almuerzo' | 'cena' | 'snack';
-    recipe: { _id: string; title: string };
-    _id?: string;
-}
 
-interface Day {
-    day: string;
-    meals: Meal[];
-    _id?: string;
-}
 
 export default function CreateMealPlanScreen() {
     const router = useRouter();
@@ -43,7 +34,7 @@ export default function CreateMealPlanScreen() {
     const [image, setImage] = useState<string | null>(null);
     const [isActive, setIsActive] = useState(true);
     const [isPublic, setIsPublic] = useState(false);
-    const [days, setDays] = useState<Day[]>([]);
+    const [days, setDays] = useState<DayPlan[]>([]);
 
     // Picker State
     const [pickerVisible, setPickerVisible] = useState(false);
@@ -348,7 +339,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: SPACING.m,
-        paddingTop: SPACING.m,
+        paddingTop: SPACING.xs,
         paddingBottom: SPACING.m,
         backgroundColor: COLORS.card,
         borderBottomWidth: 1,

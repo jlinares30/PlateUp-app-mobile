@@ -1,5 +1,6 @@
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -18,14 +19,6 @@ import Toast from 'react-native-toast-message';
 import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
 
-// Types
-interface Ingredient {
-  _id: string;
-  name: string;
-  unit?: string;
-  image?: string;
-  category?: string;
-}
 
 const IngredientSkeleton = () => (
   <View style={{

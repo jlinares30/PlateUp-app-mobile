@@ -8,15 +8,10 @@ import {
   Text,
   View,
 } from "react-native";
+
+import { Ingredient } from "@/src/types";
 import api from "../../../src/lib/api";
 
-interface Ingredient {
-  _id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-  __v?: number;
-}
 
 export default function IngredientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
