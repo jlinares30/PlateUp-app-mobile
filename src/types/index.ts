@@ -5,6 +5,13 @@ export interface Ingredient {
     unit?: string;
     category?: string;
     calories?: number;
+    macros?: {
+        protein: number;
+        carbs: number;
+        fat: number;
+        fiber: number;
+    };
+    tags?: string[];
 }
 
 export interface UserRef {
@@ -24,6 +31,9 @@ export interface Recipe {
     category?: string;
     steps?: string[];
     user?: string;
+    difficulty?: string;
+    isPublic?: boolean;
+    tags?: string[];
 }
 
 export interface RecipeRef {

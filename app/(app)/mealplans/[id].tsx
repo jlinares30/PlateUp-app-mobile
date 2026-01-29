@@ -99,8 +99,8 @@ export default function MealPlanDetail() {
       </View>
 
       <Animated.View entering={FadeInDown.springify()}>
-        {mealPlan.imageUrl ? (
-          <Image source={{ uri: mealPlan.imageUrl }} style={styles.image} />
+        {mealPlan.image ? (
+          <Image source={{ uri: mealPlan.image }} style={styles.image} />
         ) : (
           <View style={styles.placeholderImage}>
             <Ionicons name="restaurant-outline" size={64} color={COLORS.text.light} />
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: SPACING.xl,
+    marginTop: SPACING.xs,
     marginBottom: SPACING.m,
   },
   backButton: {
