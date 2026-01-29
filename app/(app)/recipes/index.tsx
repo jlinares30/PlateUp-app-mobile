@@ -1,5 +1,6 @@
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { normalizeTags } from "@/src/lib/utils";
 import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -179,6 +180,15 @@ export default function RecipesScreen() {
                 </View>
               </View>
               <Text style={styles.recipeDescription} numberOfLines={2}>{item.description}</Text>
+
+              {/* Tags Preview */}
+              {item.tags && item.tags.length > 0 && (
+                <View style={styles.tagsRow}>
+                  {normalizeTags(item.tags).slice(0, 3).map((tag, idx) => (
+                    <Text key={idx} style={styles.tagText}>#{tag}</Text>
+                  ))}
+                </View>
+              )}
             </View>
             {item.matchPercentage !== undefined && (
               <View style={[styles.matchBadge, { opacity: item.matchPercentage > 0 ? 1 : 0 }]}>
@@ -518,5 +528,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONTS.sizes.body,
     color: COLORS.text.secondary,
-  }
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  tagText: {
+    fontSize: 10,
+    color: COLORS.primary,
+    backgroundColor: COLORS.primary + '10',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
 });

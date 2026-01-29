@@ -36,6 +36,7 @@ export default function EditRecipeScreen() {
     const [difficulty, setDifficulty] = useState("Medium");
     const [image, setImage] = useState<string | null>(null);
     const [isPublic, setIsPublic] = useState(false);
+    const [tags, setTags] = useState("");
     const [newImagePicked, setNewImagePicked] = useState(false); // Track if user picked a new image
 
     // Fetch existing recipe
@@ -70,6 +71,9 @@ export default function EditRecipeScreen() {
                     unit: item.unit || ""
                 }));
                 setIngredients(formatted);
+            }
+            if (recipe.tags && Array.isArray(recipe.tags)) {
+                setTags(recipe.tags.join(', '));
             }
         }
     }, [recipe]);
@@ -107,6 +111,9 @@ export default function EditRecipeScreen() {
             formData.append("category", category);
             formData.append("difficulty", difficulty);
             formData.append("isPublic", String(isPublic));
+
+            const tagsArray = tags.split(',').map(t => t.trim()).filter(Boolean);
+            formData.append("tags", JSON.stringify(tagsArray));
 
             // Only append image if it's a new one (local URI)
             // Backend should keep existing image if 'image' field is not sent (or handle logic)
@@ -314,6 +321,17 @@ export default function EditRecipeScreen() {
                     <Text style={{ color: COLORS.text.secondary, fontSize: FONTS.sizes.small }}>
                         {isPublic ? "Public: Everyone can see this recipe" : "Private: Only you can see this recipe"}
                     </Text>
+                </View>
+
+                <View style={styles.formGroup}>
+                    <Text style={styles.label}>Tags (comma separated)</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="e.g. Healthy, Italian, Quick"
+                        placeholderTextColor={COLORS.text.light}
+                        onChangeText={text => setTags(text)}
+                        value={tags}
+                    />
                 </View>
 
                 <View style={styles.formGroup}>

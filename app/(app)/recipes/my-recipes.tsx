@@ -1,5 +1,6 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
+import { normalizeTags } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/store/useAuth";
 import { Recipe } from "@/src/types";
 import { Ionicons } from '@expo/vector-icons';
@@ -118,6 +119,14 @@ export default function MyRecipesScreen() {
                                     <Text style={styles.tagText}>{item.category}</Text>
                                 </View>
                             </View>
+                            {/* Tags Preview */}
+                            {item.tags && item.tags.length > 0 && (
+                                <View style={styles.tagsRow}>
+                                    {normalizeTags(item.tags).slice(0, 2).map((tag, idx) => (
+                                        <Text key={idx} style={styles.tagsPreviewText}>#{tag}</Text>
+                                    ))}
+                                </View>
+                            )}
                         </View>
                         {activeTab === 'my-recipes' && (
                             <TouchableOpacity
@@ -345,7 +354,19 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        ...SHADOWS.medium,
         zIndex: 100,
+    },
+    tagsRow: {
+        flexDirection: 'row',
+        marginTop: 6,
+        gap: 6,
+    },
+    tagsPreviewText: {
+        fontSize: 9,
+        color: COLORS.primary,
+        backgroundColor: COLORS.primary + '10',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
     },
 });
