@@ -1,3 +1,4 @@
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from '@/src/store/useAuth';
 import { Ionicons } from '@expo/vector-icons';
@@ -84,6 +85,30 @@ export default function ProfileScreen() {
             setImage(null);
         }
     };
+
+    if (!user) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.content}>
+                    <View style={styles.avatarContainer}>
+                        <Skeleton width={100} height={100} borderRadius={50} style={{ marginBottom: SPACING.m }} />
+                        <Skeleton width={150} height={32} style={{ marginBottom: 4 }} />
+                        <Skeleton width={200} height={16} />
+                    </View>
+                    <View style={styles.form}>
+                        <View style={styles.inputGroup}>
+                            <Skeleton width={60} height={14} style={{ marginBottom: 8 }} />
+                            <Skeleton width="100%" height={48} />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Skeleton width={60} height={14} style={{ marginBottom: 8 }} />
+                            <Skeleton width="100%" height={48} />
+                        </View>
+                    </View>
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>

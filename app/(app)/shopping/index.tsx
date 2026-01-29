@@ -1,21 +1,36 @@
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, { FadeInDown, SlideOutRight } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 import { ShoppingListItem } from "../../../src/types";
+
+const ShoppingItemSkeleton = () => (
+  <View style={styles.row}>
+    <View style={styles.info}>
+      <Skeleton width={120} height={20} style={{ marginBottom: 4 }} />
+      <Skeleton width={80} height={14} />
+    </View>
+    <View style={styles.controls}>
+      <Skeleton width={32} height={32} borderRadius={8} />
+      <Skeleton width={30} height={20} style={{ marginHorizontal: 8 }} />
+      <Skeleton width={32} height={32} borderRadius={8} />
+      <Skeleton width={24} height={24} style={{ marginLeft: SPACING.s }} />
+    </View>
+  </View>
+);
 
 export default function ShoppingCart() {
   const router = useRouter();
@@ -35,10 +50,6 @@ export default function ShoppingCart() {
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       await api.put(`/shopping-list/${itemId}`, { quantity });
     },
-
-
-    // ...
-
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shoppingList'] }),
     onError: () => Toast.show({
       type: 'error',
@@ -55,7 +66,7 @@ export default function ShoppingCart() {
       queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
       Toast.show({
         type: 'success',
-        text1: 'Success', // Optional, maybe too noisy for every remove? 
+        text1: 'Success',
         text2: "Item removed"
       });
     },
@@ -135,13 +146,11 @@ export default function ShoppingCart() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
+  const renderSkeletons = () => (
+    <View style={styles.list}>
+      {[1, 2, 3, 4, 5].map(key => <ShoppingItemSkeleton key={key} />)}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -157,7 +166,9 @@ export default function ShoppingCart() {
         </View>
       </View>
 
-      {cart.length === 0 ? (
+      {isLoading && cart.length === 0 ? (
+        renderSkeletons()
+      ) : cart.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="cart-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
           <Text style={styles.emptyText}>Your list is empty.</Text>
@@ -301,6 +312,3 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
   }
 });
-
-
-

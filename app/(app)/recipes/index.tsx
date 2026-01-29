@@ -1,3 +1,4 @@
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +26,20 @@ interface Ingredient {
   category?: string;
   unit?: string;
 }
+
+const RecipeSkeleton = () => (
+  <View style={[styles.recipeCard, { marginBottom: SPACING.m }]}>
+    <Skeleton height={200} width="100%" borderRadius={0} />
+    <View style={styles.recipeContent}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.s }}>
+        <Skeleton width="60%" height={24} />
+        <Skeleton width={60} height={20} />
+      </View>
+      <Skeleton width="100%" height={16} style={{ marginBottom: 4 }} />
+      <Skeleton width="80%" height={16} />
+    </View>
+  </View>
+);
 
 export default function RecipesScreen() {
   const router = useRouter();
@@ -122,10 +137,6 @@ export default function RecipesScreen() {
       await Promise.all(promises);
       return fullRecipe.ingredients.length;
     },
-
-
-    // ... inside component ...
-
     onSuccess: (count, variables) => {
       Toast.show({
         type: 'success',
@@ -199,6 +210,12 @@ export default function RecipesScreen() {
     </Animated.View>
   );
 
+  const renderSkeletons = () => (
+    <View style={styles.listContainer}>
+      {[1, 2, 3].map((key) => <RecipeSkeleton key={key} />)}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -270,24 +287,28 @@ export default function RecipesScreen() {
             clearButtonMode="while-editing"
             placeholderTextColor={COLORS.text.light}
           />
-          {isLoading && <ActivityIndicator size="small" color={COLORS.primary} />}
+          {isLoading && recipes.length > 0 && <ActivityIndicator size="small" color={COLORS.primary} />}
         </View>
 
-        <FlatList
-          data={recipes}
-          keyExtractor={(item) => item._id}
-          renderItem={renderRecipeItem}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.primary} />}
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.center}>
-                <Text style={styles.emptyText}>No recipes found.</Text>
-              </View>
-            ) : null
-          }
-        />
+        {isLoading && recipes.length === 0 ? (
+          renderSkeletons()
+        ) : (
+          <FlatList
+            data={recipes}
+            keyExtractor={(item) => item._id}
+            renderItem={renderRecipeItem}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.primary} />}
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.center}>
+                  <Text style={styles.emptyText}>No recipes found.</Text>
+                </View>
+              ) : null
+            }
+          />
+        )}
       </View>
     </View>
   );

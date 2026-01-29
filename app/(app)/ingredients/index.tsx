@@ -1,3 +1,4 @@
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +26,24 @@ interface Ingredient {
   image?: string;
   category?: string;
 }
+
+const IngredientSkeleton = () => (
+  <View style={{
+    paddingVertical: SPACING.m,
+    paddingHorizontal: SPACING.m,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  }}>
+    <View style={{ gap: 8 }}>
+      <Skeleton width={120} height={20} />
+      <Skeleton width={80} height={14} />
+    </View>
+    <Skeleton width={24} height={24} borderRadius={12} />
+  </View>
+);
 
 export default function IngredientsScreen() {
   const router = useRouter();
@@ -71,10 +90,6 @@ export default function IngredientsScreen() {
         unit: item.unit || 'unit'
       });
     },
-
-
-    // ...
-
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
       Toast.show({
@@ -105,6 +120,12 @@ export default function IngredientsScreen() {
     </Animated.View>
   );
 
+  const renderSkeletons = () => (
+    <View style={styles.listContainer}>
+      {[1, 2, 3, 4, 5, 6].map((key) => <IngredientSkeleton key={key} />)}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -128,25 +149,24 @@ export default function IngredientsScreen() {
           </View>
         ) : null}
 
-        <FlatList
-          data={ingredients}
-          keyExtractor={(i) => i._id}
-          renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor={COLORS.primary} />}
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.center}>
-                <Text style={styles.emptyText}>No ingredients found.</Text>
-              </View>
-            ) : null
-          }
-        />
-        {isLoading && !isFetching && ingredients.length === 0 && (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
+        {isLoading && ingredients.length === 0 ? (
+          renderSkeletons()
+        ) : (
+          <FlatList
+            data={ingredients}
+            keyExtractor={(i) => i._id}
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor={COLORS.primary} />}
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.center}>
+                  <Text style={styles.emptyText}>No ingredients found.</Text>
+                </View>
+              ) : null
+            }
+          />
         )}
       </View>
     </View>
@@ -207,7 +227,6 @@ const styles = StyleSheet.create({
     padding: SPACING.m,
     paddingTop: 0,
   },
-  // Removed unused styles: card, cardImage, cardInfo, cardName, cardDetail, addButton
   center: {
     flex: 1,
     justifyContent: "center",

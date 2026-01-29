@@ -118,7 +118,7 @@ export default function AppHome() {
               router.push('/profile');
             }}
           >
-            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
+            <Text style={styles.avatarText}>{user?.image ? user?.image : user?.name?.charAt(0)}</Text>
           </TouchableOpacity>
         </Animated.View>
       </View>

@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   RefreshControl,
@@ -16,11 +15,33 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 // @ts-ignore
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from "../../../src/store/useAuth";
 import { MealPlan } from "../../../src/types";
 
 type Tab = 'my-plans' | 'discover';
+
+const MealPlanSkeleton = () => (
+  <View style={styles.card}>
+    <View style={styles.cardContent}>
+      <View style={styles.cardHeader}>
+        <Skeleton width={48} height={48} borderRadius={12} />
+        <View style={{ flex: 1, marginLeft: SPACING.m, gap: 8 }}>
+          <Skeleton width="70%" height={24} />
+          <Skeleton width="40%" height={16} />
+        </View>
+      </View>
+      <View style={styles.cardFooter}>
+        <Skeleton width={60} height={24} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Skeleton width={36} height={36} borderRadius={18} />
+          <Skeleton width={36} height={36} borderRadius={18} />
+        </View>
+      </View>
+    </View>
+  </View>
+);
 
 export default function MealPlansScreen() {
   const router = useRouter();
@@ -69,10 +90,6 @@ export default function MealPlansScreen() {
       const res = await api.post("/meal-plans/clone", { id: planId });
       return res.data?.data ?? res.data;
     },
-
-
-    // ...
-
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
       Toast.show({
@@ -186,8 +203,8 @@ export default function MealPlansScreen() {
   const renderContent = () => {
     if (isLoading && !isRefreshing) {
       return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View style={styles.listContainer}>
+          {[1, 2, 3].map((key) => <MealPlanSkeleton key={key} />)}
         </View>
       );
     }
