@@ -3,8 +3,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import SwipeableRow from "../../../src/components/SwipeableRow";
 import api from "../../../src/lib/api";
 
@@ -121,12 +122,24 @@ export default function RecipesScreen() {
       await Promise.all(promises);
       return fullRecipe.ingredients.length;
     },
+
+
+    // ... inside component ...
+
     onSuccess: (count, variables) => {
-      Alert.alert("Success", `Added ingredients from "${variables.title}" to list.`);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: `Added ingredients from "${variables.title}" to list.`
+      });
       queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
     },
     onError: (err: any) => {
-      Alert.alert("Info", err.message === "No ingredients in recipe" ? err.message : "Could not add items.");
+      Toast.show({
+        type: 'info',
+        text1: 'Info',
+        text2: err.message === "No ingredients in recipe" ? err.message : "Could not add items."
+      });
     }
   });
 

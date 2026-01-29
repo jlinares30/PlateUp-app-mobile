@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 // @ts-ignore
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
@@ -68,14 +69,26 @@ export default function MealPlansScreen() {
       const res = await api.post("/meal-plans/clone", { id: planId });
       return res.data?.data ?? res.data;
     },
+
+
+    // ...
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-      Alert.alert("Success", "Plan saved to 'My Plans'");
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: "Plan saved to 'My Plans'"
+      });
       setActiveTab('my-plans');
     },
     onError: (error) => {
       console.error("Duplicate Error", error);
-      Alert.alert("Error", "Could not duplicate plan.");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not duplicate plan."
+      });
     }
   });
 
@@ -86,10 +99,19 @@ export default function MealPlansScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: "Plan deleted successfully"
+      });
     },
     onError: (error) => {
       console.error("Delete Error", error);
-      Alert.alert("Error", "Could not delete plan.");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not delete plan."
+      });
     }
   });
 

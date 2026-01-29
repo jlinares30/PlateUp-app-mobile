@@ -3,6 +3,8 @@ import { useAuthStore } from "../src/store/useAuth.js";
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import Toast from 'react-native-toast-message';
+
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
@@ -18,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         )}
       </Stack>
+      <Toast />
     </QueryClientProvider>
   );
 }

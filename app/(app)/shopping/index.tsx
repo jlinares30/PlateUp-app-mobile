@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import Animated, { FadeInDown, SlideOutRight } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 import { ShoppingListItem } from "../../../src/types";
 
@@ -34,16 +35,35 @@ export default function ShoppingCart() {
     mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
       await api.put(`/shopping-list/${itemId}`, { quantity });
     },
+
+
+    // ...
+
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shoppingList'] }),
-    onError: () => Alert.alert("Error", "Could not update item")
+    onError: () => Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: "Could not update item"
+    })
   });
 
   const removeMutation = useMutation({
     mutationFn: async (itemId: string) => {
       await api.delete(`/shopping-list/${itemId}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shoppingList'] }),
-    onError: () => Alert.alert("Error", "Could not remove item")
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success', // Optional, maybe too noisy for every remove? 
+        text2: "Item removed"
+      });
+    },
+    onError: () => Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: "Could not remove item"
+    })
   });
 
   // Helper functions

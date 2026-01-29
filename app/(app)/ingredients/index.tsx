@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
   View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
 
@@ -71,12 +71,24 @@ export default function IngredientsScreen() {
         unit: item.unit || 'unit'
       });
     },
+
+
+    // ...
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
-      Alert.alert("Success", "Added to shopping list");
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: "Added to shopping list"
+      });
     },
     onError: () => {
-      Alert.alert("Error", "Could not add to list");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not add to list"
+      });
     }
   });
 

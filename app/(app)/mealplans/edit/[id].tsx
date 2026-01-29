@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -19,6 +18,7 @@ import {
     View
 } from "react-native";
 import Animated, { FadeInDown, SlideInRight, SlideOutRight } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import RecipePicker from "../../../../src/components/RecipePicker";
 import api from "../../../../src/lib/api";
 import { DayPlan } from "../../../../src/types";
@@ -64,7 +64,11 @@ export default function EditMealPlanScreen() {
                 }
             }
         } catch (e) {
-            Alert.alert("Error", "No se pudo cargar el plan.");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: "No se pudo cargar el plan."
+            });
         } finally {
             setLoading(false);
         }
@@ -125,21 +129,36 @@ export default function EditMealPlanScreen() {
                 return res.data;
             }
         },
+
+
+        // ...
+
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-            Alert.alert("Success", "Plan updated successfully.", [
-                { text: "OK", onPress: () => router.back() }
-            ]);
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: "Plan updated successfully."
+            });
+            setTimeout(() => router.back(), 500);
         },
         onError: (error) => {
             console.error(error);
-            Alert.alert("Error", "Could not save changes.");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: "Could not save changes."
+            });
         }
     });
 
     const handleSave = () => {
         if (!title.trim()) {
-            Alert.alert("Error", "Title is required.");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: "Title is required."
+            });
             return;
         }
         updateMutation.mutate();

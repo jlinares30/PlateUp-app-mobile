@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -33,7 +34,11 @@ export default function ProfileScreen() {
 
     const handleSave = async () => {
         if (password && password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Passwords do not match'
+            });
             return;
         }
 
@@ -68,7 +73,11 @@ export default function ProfileScreen() {
 
         const success = await updateProfile(formData);
         if (success) {
-            Alert.alert('Success', 'Profile updated successfully');
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Profile updated successfully'
+            });
             setIsEditing(false);
             setPassword('');
             setConfirmPassword('');

@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import Toast from 'react-native-toast-message';
 
 export default function CreateRecipeScreen() {
   const router = useRouter();
@@ -84,20 +85,36 @@ export default function CreateRecipeScreen() {
       });
       return res.data;
     },
+
+
+    // ...
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipes"] });
-      Alert.alert("Success", "Recipe created!");
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Recipe created!'
+      });
       router.back();
     },
     onError: (error: any) => {
       console.error(error);
-      Alert.alert("Error", "Failed to create recipe. " + (error.response?.data?.message || error.message));
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Failed to create recipe. " + (error.response?.data?.message || error.message)
+      });
     },
   });
 
   const handleSubmit = () => {
     if (!title || !time || !category) {
-      Alert.alert("Error", "Please fill in required fields (Title, Time, Category)");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Please fill in required fields (Title, Time, Category)"
+      });
       return;
     }
     if (ingredients.length === 0) {
@@ -113,7 +130,11 @@ export default function CreateRecipeScreen() {
   const addIngredient = (ingredient: Ingredient) => {
     // Check if already added
     if (ingredients.find(i => i.ingredient._id === ingredient._id)) {
-      Alert.alert("Info", "Ingredient already added");
+      Toast.show({
+        type: 'info',
+        text1: 'Info',
+        text2: "Ingredient already added"
+      });
       return;
     }
     setIngredients([...ingredients, { ingredient, quantity: "", unit: ingredient.unit || "" }]);

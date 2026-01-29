@@ -36,7 +36,11 @@ export const useAuthStore = create(persist((set) => ({
     try {
       set({ loading: true });
       console.log("[DEBUG] Updating profile with data:", data);
-      const response = await api.put("/auth/profile", data);
+      const response = await api.put("/auth/profile", data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       console.log("[DEBUG] Update profile response:", response.data);
       set({ user: response.data.user, loading: false });
       return true;

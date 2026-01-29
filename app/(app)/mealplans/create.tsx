@@ -8,7 +8,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     Image,
     SafeAreaView,
     ScrollView,
@@ -17,9 +16,11 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
+
+import Toast from 'react-native-toast-message';
 
 interface Meal {
     type: 'desayuno' | 'almuerzo' | 'cena' | 'snack';
@@ -156,20 +157,36 @@ export default function CreateMealPlanScreen() {
                 return res.data;
             }
         },
+
+
+        // ...
+
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["mealPlans"] });
-            Alert.alert("Success", "Meal Plan created!");
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Meal Plan created!'
+            });
             router.back();
         },
         onError: (error: any) => {
             console.error(error);
-            Alert.alert("Error", "Failed to create meal plan. " + (error.response?.data?.message || error.message));
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: "Failed to create meal plan. " + (error.response?.data?.message || error.message)
+            });
         },
     });
 
     const handleSubmit = () => {
         if (!title) {
-            Alert.alert("Error", "Please fill in the Title field");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: "Please fill in the Title field"
+            });
             return;
         }
         createMutation.mutate();
