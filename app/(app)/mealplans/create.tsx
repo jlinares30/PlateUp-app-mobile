@@ -115,12 +115,6 @@ export default function CreateMealPlanScreen() {
 
     const createMutation = useMutation({
         mutationFn: async () => {
-            const formData = new FormData();
-            formData.append("title", title);
-            formData.append("description", description);
-            formData.append("isActive", String(isActive));
-            formData.append("isPublic", String(isPublic));
-
             // Format days for backend (only IDs needed for recipes)
             const formattedDays = days.map(d => ({
                 day: d.day,
@@ -130,21 +124,37 @@ export default function CreateMealPlanScreen() {
                 }))
             }));
 
-            formData.append("days", JSON.stringify(formattedDays));
-
             if (image) {
+                const formData = new FormData();
+                formData.append("title", title);
+                formData.append("description", description);
+                formData.append("isActive", String(isActive));
+                formData.append("isPublic", String(isPublic));
+                formData.append("days", JSON.stringify(formattedDays));
+
                 const filename = image.split('/').pop();
                 const match = /\.(\w+)$/.exec(filename ?? "");
                 const type = match ? `image/${match[1]}` : `image`;
                 formData.append('image', { uri: image, name: filename, type } as any);
-            }
 
-            const res = await api.post("/meal-plans", formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            return res.data;
+                const res = await api.post("/meal-plans", formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                return res.data;
+            } else {
+                // Send as regular JSON if no image
+                const payload = {
+                    title,
+                    description,
+                    isActive,
+                    isPublic,
+                    days: formattedDays
+                };
+                const res = await api.post("/meal-plans", payload);
+                return res.data;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["mealPlans"] });
@@ -207,7 +217,7 @@ export default function CreateMealPlanScreen() {
                     </View>
 
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Description</Text>
+                        <Text style={styles.label}>Descriptiouyjg</Text>
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             value={description}
