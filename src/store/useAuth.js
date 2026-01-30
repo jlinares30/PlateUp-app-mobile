@@ -58,4 +58,10 @@ export const useAuthStore = create(persist((set) => ({
     }
   },
   logout: () => set({ user: null }),
-})));
+}),
+{ name: "auth-storage",
+  onRehydrateStorage: () => (state) => {
+    state.setHasHydrated(true);
+  },
+ }
+));
