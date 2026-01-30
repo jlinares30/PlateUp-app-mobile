@@ -1,50 +1,147 @@
-# Welcome to your Expo app 👋
+# 🍽️ PlateUp - Nutrition & Meal Planning App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A full-stack mobile application designed to help users plan meals, manage recipes, and track their nutrition journey. Built with **React Native (Expo)** and **Node.js**.
 
-## Get started
+---
 
-1. Install dependencies
+## 🚀 Overview
 
-   ```bash
-   npm install
-   ```
+**PlateUp** solves the problem of disorganized meal planning. It allows users to:
+- Browse, create, and manage their own recipes.
+- Plan meals for the week with a drag-and-drop or selection interface.
+- Automatically generate shopping lists based on meal plans.
+- Manage pantry inventory to avoid waste.
+- Filter recipes by ingredients, difficulty, and categories.
 
-2. Start the app
+This project demonstrates proficiency in **full-stack mobile development**, **state management**, **RESTful API design**, and **modern UI/UX principles**.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## ✨ Key Features
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 🔐 Authentication & Security
+- **Secure Login/Register**: JWT-based authentication with encrypted passwords (bcrypt).
+- **Email Verification**: Custom backend validation ensuring email domain existence via DNS MX records.
+- **Profile Management**: Update user details and upload profile pictures.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### 🥗 Recipe Management
+- **CRUD Operations**: Create, read, update, and delete recipes.
+- **Image Upload**: Seamless image uploading using camera/gallery integration and **Cloudinary** storage.
+- **Rich Details**: Support for ingredients, step-by-step instructions, preparation time, and difficulty levels.
+- **Favorites**: Save best-loved recipes for quick access.
 
-## Get a fresh project
+### 📅 Meal Planning
+- **Weekly Planner**: Organize breakfast, lunch, dinner, and snacks for each day.
+- **Flexible Management**: Create public or private meal plans.
 
-When you're ready, run:
+### 🛒 Shopping & Pantry
+- **Smart Shopping List**: Add ingredients directly from recipes.
+- **Pantry Tracker**: Keep track of what you already have at home.
 
+---
+
+## 🛠️ Tech Stack
+
+### 📱 Frontend (Mobile)
+- **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/) (Managed Workflow)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand) (Global Store)
+- **Data Fetching**: [TanStack Query](https://tanstack.com/query/latest) (Caching, optimistic updates)
+- **Styling**: Custom StyleSheet with responsive design constants.
+- **Animations**: [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)
+- **UI Components**: lucide-react-native (Icons), RefreshControl, FlatLists.
+
+### 🔙 Backend (API)
+- **Runtime**: [Node.js](https://nodejs.org/)
+- **Framework**: [Express.js](https://expressjs.com/)
+- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/) ODM
+- **Image Storage**: [Cloudinary](https://cloudinary.com/)
+- **Authentication**: JWT (JSON Web Tokens)
+- **Validation**: Custom regex & DNS domain verification.
+
+---
+
+## ⚙️ Installation & Setup
+
+### Prerequisites
+- Node.js (v18+)
+- npm or yarn
+- MongoDB Instance (Local or Atlas)
+- Cloudinary Account (for images)
+
+### 1. Backend Setup
+Navigate to the backend directory and install dependencies:
 ```bash
-npm run reset-project
+cd backend
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Create a `.env` file in the `backend` root:
+```env
+PORT=3000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
 
-## Learn more
+Start the server:
+```bash
+npm run dev
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### 2. Frontend Setup
+Navigate to the frontend directory:
+```bash
+cd frontend/app-mobile-prototype-react-native
+npm install
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Create a `.env` file (if needed by your config, usually EXPO public vars):
+```env
+EXPO_PUBLIC_API_URL_DEV=http://localhost:3000/api
+EXPO_PUBLIC_API_URL_PROD=https://your-prod-api.com/api
+```
 
-## Join the community
+Start the Expo app:
+```bash
+npx expo start
+```
+*Press `a` for Android Emulator, `i` for iOS Simulator, or scan the QR code with Expo Go.*
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📂 Project Structure
+
+```
+├── app/                  # Frontend Screens & Routing (Expo Router)
+│   ├── (app)/            # Authenticated Routes (Tabs, Stacks)
+│   ├── (auth)/           # Authentication Routes (Login, Register)
+│   ├── _layout.tsx       # Root Layout
+├── src/
+│   ├── components/       # Reusable UI Components (Cards, Modals)
+│   ├── constants/        # Theme, Colors, Fonts
+│   ├── lib/              # Utilities & API Configuration
+│   ├── store/            # Zustand Stores (Auth, etc.)
+│   ├── types/            # TypeScript Interfaces
+├── backend/
+│   ├── controllers/      # Logic for API endpoints
+│   ├── models/           # Mongoose Data Schemas
+│   ├── routes/           # API Route Definitions
+│   ├── config/           # Database & Cloudinary Config
+```
+
+---
+
+## 💡 Future Improvements
+- [ ] **Social Sharing**: Share meal plans with friends.
+- [ ] **Nutritional Analysis**: Auto-calculate calories and macros based on ingredients.
+- [ ] **Offline Mode**: Cache recipes for offline access.
+- [ ] **Push Notifications**: Reminders for meal prep times.
+
+---
+
+## 👤 Author
+Developed by **Jorge Linares**.
