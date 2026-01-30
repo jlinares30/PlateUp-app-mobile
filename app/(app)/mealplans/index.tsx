@@ -1,10 +1,11 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
+import Skeleton from "@/src/components/Skeleton";
+import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -13,13 +14,33 @@ import {
   View
 } from "react-native";
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
-// @ts-ignore
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from "../../../src/store/useAuth";
 import { MealPlan } from "../../../src/types";
 
 type Tab = 'my-plans' | 'discover';
+
+const MealPlanSkeleton = () => (
+  <View style={styles.card}>
+    <View style={styles.cardContent}>
+      <View style={styles.cardHeader}>
+        <Skeleton width={48} height={48} borderRadius={12} />
+        <View style={{ flex: 1, marginLeft: SPACING.m, gap: 8 }}>
+          <Skeleton width="70%" height={24} />
+          <Skeleton width="40%" height={16} />
+        </View>
+      </View>
+      <View style={styles.cardFooter}>
+        <Skeleton width={60} height={24} />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Skeleton width={36} height={36} borderRadius={18} />
+          <Skeleton width={36} height={36} borderRadius={18} />
+        </View>
+      </View>
+    </View>
+  </View>
+);
 
 export default function MealPlansScreen() {
   const router = useRouter();
@@ -62,6 +83,18 @@ export default function MealPlansScreen() {
   const isLoading = loadingPublic || loadingMy;
   const isRefreshing = refetchingPublic || refetchingMy;
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    actions: [] as ModalAction[]
+  });
+
+  const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+    setModalConfig({ title, message, actions });
+    setModalVisible(true);
+  };
+
   // Mutation for duplicating a plan
   const duplicateMutation = useMutation({
     mutationFn: async (planId: string) => {
@@ -70,12 +103,20 @@ export default function MealPlansScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
-      Alert.alert("Success", "Plan saved to 'My Plans'");
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: "Plan saved to 'My Plans'"
+      });
       setActiveTab('my-plans');
     },
     onError: (error) => {
       console.error("Duplicate Error", error);
-      Alert.alert("Error", "Could not duplicate plan.");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not duplicate plan."
+      });
     }
   });
 
@@ -86,10 +127,19 @@ export default function MealPlansScreen() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mealPlans'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: "Plan deleted successfully"
+      });
     },
     onError: (error) => {
       console.error("Delete Error", error);
-      Alert.alert("Error", "Could not delete plan.");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not delete plan."
+      });
     }
   });
 
@@ -99,7 +149,7 @@ export default function MealPlansScreen() {
   };
 
   const handleDuplicate = (plan: MealPlan) => {
-    Alert.alert("Duplicate Plan", `Do you want to add "${plan.title}"?`, [
+    showAlert("Duplicate Plan", `Do you want to add "${plan.title}"?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Yes, add it",
@@ -109,11 +159,11 @@ export default function MealPlansScreen() {
   };
 
   const handleDelete = (plan: MealPlan) => {
-    Alert.alert("Delete Plan", `Are you sure you want to delete "${plan.title}"?`, [
+    showAlert("Delete Plan", `Are you sure you want to delete "${plan.title}"?`, [
       { text: "Cancel", style: "cancel" },
       { text: "Delete", style: 'destructive', onPress: () => deleteMutation.mutate(plan._id) }
     ]);
-  }
+  };
 
   const renderItem = ({ item, index }: { item: MealPlan; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
@@ -164,8 +214,8 @@ export default function MealPlansScreen() {
   const renderContent = () => {
     if (isLoading && !isRefreshing) {
       return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+        <View style={styles.listContainer}>
+          {[1, 2, 3].map((key) => <MealPlanSkeleton key={key} />)}
         </View>
       );
     }
@@ -216,6 +266,24 @@ export default function MealPlansScreen() {
         <View style={{ flex: 1 }}>
           {renderContent()}
         </View>
+
+        {/* FAB for creating new plan */}
+        {activeTab === 'my-plans' && (
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => router.push("/mealplans/create")}
+          >
+            <Ionicons name="add" size={30} color="#fff" />
+          </TouchableOpacity>
+        )}
+
+        <ConfirmModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          actions={modalConfig.actions}
+        />
       </View>
     </View>
   );
@@ -362,5 +430,18 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontSize: FONTS.sizes.body,
     lineHeight: 24,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: SPACING.m,
+    right: SPACING.m,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.medium,
+    zIndex: 100,
   },
 });

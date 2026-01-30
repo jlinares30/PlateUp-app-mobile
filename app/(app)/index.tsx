@@ -3,10 +3,22 @@ import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from "@/src/store/useAuth";
 import { Href, useRouter } from "expo-router";
 import { Box, Calendar, ChefHat, Search, ShoppingBag, User as UserIcon } from "lucide-react-native";
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
+
+const AnimatedView = Animated.createAnimatedComponent(View);
+
+import api from "@/src/lib/api";
+import { useQuery } from '@tanstack/react-query';
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 18) return "Good Afternoon";
+  return "Good Evening";
+};
 
 export default function AppHome() {
   const router = useRouter();
@@ -17,6 +29,16 @@ export default function AppHome() {
     router.replace("/(auth)/login");
   }
 
+  // Fetch Dashboard Stats
+  const { data: stats } = useQuery({
+    queryKey: ['dashboardStats'],
+    queryFn: async () => {
+      const res = await api.get('/stats');
+      return res.data?.data ?? { recipesCount: 0, plansCount: 0, favoritesCount: 0 };
+    },
+    refetchOnMount: true
+  });
+
   const menuItems = [
     {
       id: '1',
@@ -26,7 +48,7 @@ export default function AppHome() {
       color: '#ef4444',
       gradient: ['#ef4444', '#f87171'],
       route: '/recipes' as Href,
-      delay: 100
+      delay: 50
     },
     {
       id: '4',
@@ -36,7 +58,7 @@ export default function AppHome() {
       color: '#10b981',
       gradient: ['#10b981', '#34d399'],
       route: '/mealplans' as Href,
-      delay: 200
+      delay: 100
     },
     {
       id: '5',
@@ -46,7 +68,7 @@ export default function AppHome() {
       color: '#f59e0b',
       gradient: ['#f59e0b', '#fbbf24'],
       route: '/shopping' as Href,
-      delay: 300
+      delay: 150
     },
     {
       id: '7',
@@ -56,7 +78,7 @@ export default function AppHome() {
       color: '#8b5cf6',
       gradient: ['#8b5cf6', '#a78bfa'],
       route: '/pantry' as Href,
-      delay: 400
+      delay: 200
     },
     {
       id: '6',
@@ -66,7 +88,7 @@ export default function AppHome() {
       color: '#3b82f6',
       gradient: ['#3b82f6', '#60a5fa'],
       route: '/ingredients' as Href,
-      delay: 500
+      delay: 250
     },
     {
       id: '8',
@@ -76,14 +98,14 @@ export default function AppHome() {
       color: '#64748b',
       gradient: ['#64748b', '#94a3b8'],
       route: '/profile' as Href,
-      delay: 600
+      delay: 300
     }
   ];
 
   const renderMenuItem = (item: typeof menuItems[0]) => (
-    <Animated.View
+    <AnimatedView
       key={item.id}
-      entering={FadeInDown.delay(item.delay).springify()}
+      entering={FadeInDown.delay(item.delay).duration(400).springify().damping(18)}
       style={{ width: '48%', marginBottom: SPACING.m }}
     >
       <TouchableOpacity
@@ -97,7 +119,7 @@ export default function AppHome() {
         <Text style={styles.menuTitle}>{item.title}</Text>
         <Text style={styles.menuDescription} numberOfLines={1}>{item.description}</Text>
       </TouchableOpacity>
-    </Animated.View>
+    </AnimatedView>
   );
 
   return (
@@ -107,30 +129,42 @@ export default function AppHome() {
         <View style={{ marginRight: SPACING.m }}>
           <MenuButton />
         </View>
-        <Animated.View entering={FadeInDown.duration(600)} style={styles.welcomeContainer}>
-          <Text style={styles.subtitleText}>Good Morning,</Text>
+        <AnimatedView entering={FadeInDown.duration(400)} style={styles.welcomeContainer}>
+          <Text style={styles.subtitleText}>{getGreeting()},</Text>
           <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
-        </Animated.View>
-        <Animated.View entering={FadeInDown.delay(200).duration(600)}>
+        </AnimatedView>
+        <AnimatedView entering={FadeInDown.delay(100).duration(400)}>
           <TouchableOpacity
             style={styles.avatar}
             onPress={() => {
-              console.log("Intentando navegar a:", '/profile');
               router.push('/profile');
             }}
           >
-            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'U'}</Text>
+            {
+              user?.image ? (
+                <Image
+                  source={{ uri: user?.image }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <Text style={styles.avatarText}>{user?.name?.charAt(0)}</Text>
+              )
+            }
           </TouchableOpacity>
-        </Animated.View>
+        </AnimatedView>
       </View>
 
       {/* Hero Section */}
-      <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.heroSection}>
+      <AnimatedView entering={FadeInUp.delay(150).springify().damping(18)} style={styles.heroSection}>
         <View style={styles.heroContent}>
+          <Image
+            source={require("@/assets/images/logo_plateup-removebg.png")}
+            style={{ width: 60, height: 60, resizeMode: 'contain', marginBottom: SPACING.s, tintColor: COLORS.card }}
+          />
           <Text style={styles.heroTitle}>What's cooking?</Text>
           <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
         </View>
-      </Animated.View>
+      </AnimatedView>
 
       {/* Menu Grid */}
       <View style={styles.menuSection}>
@@ -141,22 +175,22 @@ export default function AppHome() {
       </View>
 
       {/* Stats Quick View */}
-      <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.statsContainer}>
-        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
-          <Text style={[styles.statNumber, { color: COLORS.accent }]}>12</Text>
+      <AnimatedView entering={FadeInDown.delay(200).springify().damping(18)} style={styles.statsContainer}>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/recipes/my-recipes')}>
+          <Text style={[styles.statNumber, { color: COLORS.accent }]}>{stats?.recipesCount ?? 0}</Text>
           <Text style={styles.statLabel}>Recipes</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
-        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
-          <Text style={[styles.statNumber, { color: COLORS.warning }]}>5</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/recipes/my-recipes')}>
+          <Text style={[styles.statNumber, { color: COLORS.warning }]}>{stats?.favoritesCount ?? 0}</Text>
+          <Text style={styles.statLabel}>Favorites</Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
-        <TouchableOpacity style={styles.statItem} activeOpacity={0.8}>
-          <Text style={[styles.statNumber, { color: COLORS.secondary }]}>3</Text>
+        <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/mealplans')}>
+          <Text style={[styles.statNumber, { color: COLORS.secondary }]}>{stats?.plansCount ?? 0}</Text>
           <Text style={styles.statLabel}>Plans</Text>
         </TouchableOpacity>
-      </Animated.View>
+      </AnimatedView>
     </ScrollView>
   );
 }
@@ -310,5 +344,10 @@ const styles = StyleSheet.create({
   menuDescription: {
     fontSize: FONTS.sizes.tiny,
     color: COLORS.text.secondary,
-  }
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+  },
 });

@@ -1,20 +1,36 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, { FadeInDown, SlideOutRight } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 import { ShoppingListItem } from "../../../src/types";
+
+const ShoppingItemSkeleton = () => (
+  <View style={styles.row}>
+    <View style={styles.info}>
+      <Skeleton width={120} height={20} style={{ marginBottom: 4 }} />
+      <Skeleton width={80} height={14} />
+    </View>
+    <View style={styles.controls}>
+      <Skeleton width={32} height={32} borderRadius={8} />
+      <Skeleton width={30} height={20} style={{ marginHorizontal: 8 }} />
+      <Skeleton width={32} height={32} borderRadius={8} />
+      <Skeleton width={24} height={24} style={{ marginLeft: SPACING.s }} />
+    </View>
+  </View>
+);
 
 export default function ShoppingCart() {
   const router = useRouter();
@@ -29,21 +45,106 @@ export default function ShoppingCart() {
     }
   });
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    actions: [] as ModalAction[]
+  });
+
+  const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+    setModalConfig({ title, message, actions });
+    setModalVisible(true);
+  };
+
   // 2. Mutations
   const updateMutation = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
-      await api.put(`/shopping-list/${itemId}`, { quantity });
+    mutationFn: async ({ itemId, quantity, checked }: { itemId: string; quantity?: number; checked?: boolean }) => {
+      await api.put(`/shopping-list/${itemId}`, { quantity, checked });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shoppingList'] }),
-    onError: () => Alert.alert("Error", "Could not update item")
+    onMutate: async (newItem) => {
+      await queryClient.cancelQueries({ queryKey: ['shoppingList'] });
+      const previousList = queryClient.getQueryData<ShoppingListItem[]>(['shoppingList']);
+
+      queryClient.setQueryData(['shoppingList'], (old: ShoppingListItem[] | undefined) => {
+        if (!old) return [];
+        return old.map((item) =>
+          item._id === newItem.itemId ? { ...item, ...newItem } : item
+        );
+      });
+
+      return { previousList };
+    },
+    onError: (err, newItem, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData(['shoppingList'], context.previousList);
+      }
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not update item"
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
+    }
   });
 
   const removeMutation = useMutation({
     mutationFn: async (itemId: string) => {
       await api.delete(`/shopping-list/${itemId}`);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['shoppingList'] }),
-    onError: () => Alert.alert("Error", "Could not remove item")
+    onMutate: async (itemId) => {
+      await queryClient.cancelQueries({ queryKey: ['shoppingList'] });
+      const previousList = queryClient.getQueryData<ShoppingListItem[]>(['shoppingList']);
+
+      queryClient.setQueryData(['shoppingList'], (old: ShoppingListItem[] | undefined) => {
+        if (!old) return [];
+        return old.filter((item) => item._id !== itemId);
+      });
+
+      return { previousList };
+    },
+    onError: (err, itemId, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData(['shoppingList'], context.previousList);
+      }
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not remove item"
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
+    }
+  });
+
+  const clearAllMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete('/shopping-list/clear');
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['shoppingList'] });
+      const previousList = queryClient.getQueryData<ShoppingListItem[]>(['shoppingList']);
+
+      queryClient.setQueryData(['shoppingList'], []);
+
+      return { previousList };
+    },
+    onError: (err, vars, context) => {
+      if (context?.previousList) {
+        queryClient.setQueryData(['shoppingList'], context.previousList);
+      }
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Could not clear list"
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
+    }
   });
 
   // Helper functions
@@ -56,10 +157,21 @@ export default function ShoppingCart() {
     }
   };
 
+  const handleToggleCheck = (item: ShoppingListItem) => {
+    updateMutation.mutate({ itemId: item._id, checked: !item.checked });
+  };
+
   const handleRemove = (itemId: string) => {
-    Alert.alert("Remove", "Remove this item from shopping list?", [
+    showAlert("Remove", "Remove this item from shopping list?", [
       { text: "Cancel", style: "cancel" },
       { text: "Remove", style: "destructive", onPress: () => removeMutation.mutate(itemId) }
+    ]);
+  };
+
+  const handleClearAll = () => {
+    showAlert("Clear List", "Are you sure you want to remove all items?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Clear All", style: "destructive", onPress: () => clearAllMutation.mutate() }
     ]);
   };
 
@@ -73,16 +185,30 @@ export default function ShoppingCart() {
 
     return (
       <Animated.View
-        entering={FadeInDown.delay(Math.min(index * 30, 300)).springify().damping(15)}
+        entering={FadeInDown.duration(300).springify().damping(20)}
         exiting={SlideOutRight}
-        style={styles.row}
+        style={[styles.row, item.checked && styles.rowChecked]}
       >
-        <View style={styles.info}>
-          <Text style={styles.name}>{name}</Text>
+        <TouchableOpacity
+          style={styles.checkArea}
+          onPress={() => handleToggleCheck(item)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
+            {item.checked && <Ionicons name="checkmark" size={16} color="#fff" />}
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.info}
+          onPress={() => handleToggleCheck(item)}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.name, item.checked && styles.textChecked]}>{name}</Text>
           <Text style={styles.meta}>
             {category ?? "Uncategorized"} · {unit ?? "unit"}
           </Text>
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.controls}>
           <TouchableOpacity
@@ -93,7 +219,7 @@ export default function ShoppingCart() {
             <Ionicons name="remove" size={16} color={COLORS.text.primary} />
           </TouchableOpacity>
 
-          <Text style={styles.qtyText}>{item.quantity}</Text>
+          <Text style={[styles.qtyText, item.checked && { opacity: 0.5 }]}>{item.quantity}</Text>
 
           <TouchableOpacity
             style={styles.qtyBtn}
@@ -115,16 +241,22 @@ export default function ShoppingCart() {
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
+  const renderSkeletons = () => (
+    <View style={styles.list}>
+      {[1, 2, 3, 4, 5].map(key => <ShoppingItemSkeleton key={key} />)}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
+      {cart.length > 0 && (
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={handleClearAll} style={styles.clearButton}>
+            <Text style={styles.clearButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.summary}>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryValue}>{cart.length}</Text>
@@ -137,7 +269,9 @@ export default function ShoppingCart() {
         </View>
       </View>
 
-      {cart.length === 0 ? (
+      {isLoading && cart.length === 0 ? (
+        renderSkeletons()
+      ) : cart.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="cart-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
           <Text style={styles.emptyText}>Your list is empty.</Text>
@@ -163,6 +297,14 @@ export default function ShoppingCart() {
       >
         <Ionicons name="add" size={28} color={COLORS.card} />
       </TouchableOpacity>
+
+      <ConfirmModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        actions={modalConfig.actions}
+      />
     </View>
   );
 }
@@ -196,6 +338,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+  headerActions: {
+    paddingHorizontal: SPACING.m,
+    paddingTop: SPACING.m,
+    alignItems: 'flex-end',
+  },
+  clearButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  clearButtonText: {
+    color: COLORS.error,
+    fontSize: FONTS.sizes.small,
+    fontWeight: '600',
   },
   backButton: {
     padding: SPACING.xs,
@@ -245,8 +401,32 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     ...SHADOWS.small,
   },
+  rowChecked: {
+    backgroundColor: COLORS.background, // Dimmed/different bg for checked
+    opacity: 0.8,
+  },
+  checkArea: {
+    padding: 4,
+    marginRight: SPACING.s,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+  },
   info: { flex: 1, marginRight: SPACING.m },
   name: { fontSize: FONTS.sizes.body, fontWeight: "600", color: COLORS.text.primary },
+  textChecked: {
+    textDecorationLine: 'line-through',
+    color: COLORS.text.secondary,
+  },
   meta: { marginTop: 4, color: COLORS.text.secondary, fontSize: FONTS.sizes.small },
   controls: { flexDirection: 'row', alignItems: "center" },
   qtyBtn: {
@@ -281,6 +461,3 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.body,
   }
 });
-
-
-

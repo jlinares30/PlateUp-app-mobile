@@ -76,7 +76,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 ]}
             >
                 {/* El contenido del Sidebar ocupa el 70% */}
-                <View style={{ width: SCREEN_WIDTH * 0.6 }}>
+                <View style={{ width: SCREEN_WIDTH * 0.55 }}>
                     <Sidebar />
                 </View>
 
@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
     },
     sidebarContainer: {
         ...StyleSheet.absoluteFillObject,
-        width: SCREEN_WIDTH * 0.7, // Asegura que cubra el área morada
         zIndex: 0,
     },
     sidebarContent: {

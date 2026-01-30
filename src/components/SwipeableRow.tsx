@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React from "react";
 import { Dimensions, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
     Extrapolation,
     interpolate,
     runOnJS,
+    useAnimatedReaction,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
@@ -34,19 +35,27 @@ export default function SwipeableRow({
     actionLabel = 'Agregar'
 }: Props) {
     const translateX = useSharedValue(0);
-    const [hasVibrated, setHasVibrated] = useState(false);
+    const hasVibrated = useSharedValue(false); // Use shared value for logic
+
+    // Move side effects to reaction
+    useAnimatedReaction(
+        () => translateX.value > THRESHOLD,
+        (isTriggered: boolean, previous: boolean | null) => {
+            if (isTriggered && !previous) {
+                runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+                hasVibrated.value = true;
+            } else if (!isTriggered && previous) {
+                hasVibrated.value = false;
+            }
+        }
+    );
 
     const pan = Gesture.Pan()
+        .activeOffsetX([-20, 20])
+        .failOffsetY([-5, 5])
         .onUpdate((e) => {
             if (e.translationX > 0) {
                 translateX.value = e.translationX;
-
-                if (e.translationX > THRESHOLD && !hasVibrated) {
-                    runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-                    runOnJS(setHasVibrated)(true);
-                } else if (e.translationX <= THRESHOLD && hasVibrated) {
-                    runOnJS(setHasVibrated)(false);
-                }
             }
         })
         .onEnd(() => {
@@ -55,11 +64,11 @@ export default function SwipeableRow({
                 translateX.value = withTiming(SCREEN_WIDTH, { duration: 300 }, () => {
                     runOnJS(onSwipe)();
                     translateX.value = 0;
-                    runOnJS(setHasVibrated)(false);
+                    hasVibrated.value = false;
                 });
             } else {
                 translateX.value = withSpring(0);
-                runOnJS(setHasVibrated)(false);
+                hasVibrated.value = false;
             }
         });
 

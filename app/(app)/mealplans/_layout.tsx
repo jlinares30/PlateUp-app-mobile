@@ -15,6 +15,10 @@ export default function MealPlanLayout() {
         name="edit/[id]"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="create"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

@@ -1,29 +1,32 @@
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { normalizeTags } from "@/src/lib/utils";
+import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import SwipeableRow from "../../../src/components/SwipeableRow";
 import api from "../../../src/lib/api";
 
-interface Recipe {
-  _id: string;
-  title: string;
-  description: string;
-  time: string;
-  matchPercentage: number;
-  imageUrl?: string;
-  ingredients?: any[];
-}
 
-interface Ingredient {
-  _id: string;
-  name: string;
-  category?: string;
-  unit?: string;
-}
+
+const RecipeSkeleton = () => (
+  <View style={[styles.recipeCard, { marginBottom: SPACING.m }]}>
+    <Skeleton height={200} width="100%" borderRadius={0} />
+    <View style={styles.recipeContent}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.s }}>
+        <Skeleton width="60%" height={24} />
+        <Skeleton width={60} height={20} />
+      </View>
+      <Skeleton width="100%" height={16} style={{ marginBottom: 4 }} />
+      <Skeleton width="80%" height={16} />
+    </View>
+  </View>
+);
 
 export default function RecipesScreen() {
   const router = useRouter();
@@ -122,11 +125,19 @@ export default function RecipesScreen() {
       return fullRecipe.ingredients.length;
     },
     onSuccess: (count, variables) => {
-      Alert.alert("Success", `Added ingredients from "${variables.title}" to list.`);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: `Added ingredients from "${variables.title}" to list.`
+      });
       queryClient.invalidateQueries({ queryKey: ['shoppingList'] });
     },
     onError: (err: any) => {
-      Alert.alert("Info", err.message === "No ingredients in recipe" ? err.message : "Could not add items.");
+      Toast.show({
+        type: 'info',
+        text1: 'Info',
+        text2: err.message === "No ingredients in recipe" ? err.message : "Could not add items."
+      });
     }
   });
 
@@ -148,7 +159,7 @@ export default function RecipesScreen() {
   };
 
   const renderRecipeItem = ({ item, index }: { item: Recipe; index: number }) => (
-    <Animated.View entering={FadeInDown.delay(Math.min(index * 30, 300)).springify().damping(15)}>
+    <Animated.View entering={FadeInDown.duration(300).springify().damping(20)}>
       <SwipeableRow
         onSwipe={() => handleSwipeRecipe(item)}
         style={{ marginBottom: SPACING.m }}
@@ -157,7 +168,7 @@ export default function RecipesScreen() {
         <Link href={`/recipes/${item._id}`} asChild>
           <TouchableOpacity style={styles.recipeCard} activeOpacity={0.9}>
             <Image
-              source={{ uri: item.imageUrl || "https://via.placeholder.com/300" }}
+              source={{ uri: item.image || "https://via.placeholder.com/300" }}
               style={styles.cardImage}
             />
             <View style={styles.recipeContent}>
@@ -169,6 +180,15 @@ export default function RecipesScreen() {
                 </View>
               </View>
               <Text style={styles.recipeDescription} numberOfLines={2}>{item.description}</Text>
+
+              {/* Tags Preview */}
+              {item.tags && item.tags.length > 0 && (
+                <View style={styles.tagsRow}>
+                  {normalizeTags(item.tags).slice(0, 3).map((tag, idx) => (
+                    <Text key={idx} style={styles.tagText}>#{tag}</Text>
+                  ))}
+                </View>
+              )}
             </View>
             {item.matchPercentage !== undefined && (
               <View style={[styles.matchBadge, { opacity: item.matchPercentage > 0 ? 1 : 0 }]}>
@@ -186,8 +206,29 @@ export default function RecipesScreen() {
     </Animated.View>
   );
 
+  const renderSkeletons = () => (
+    <View style={styles.listContainer}>
+      {[1, 2, 3].map((key) => <RecipeSkeleton key={key} />)}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Recipes</Text>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <Link href="/recipes/my-recipes" asChild>
+            <TouchableOpacity style={styles.backButton}>
+              <Ionicons name="bookmarks-outline" size={24} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </Link>
+          <Link href="/recipes/create" asChild>
+            <TouchableOpacity style={styles.backButton}>
+              <Ionicons name="add" size={28} color={COLORS.text.primary} />
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </View>
       <View style={styles.content}>
         <View style={styles.ingredientSelector}>
           <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
@@ -249,24 +290,28 @@ export default function RecipesScreen() {
             clearButtonMode="while-editing"
             placeholderTextColor={COLORS.text.light}
           />
-          {isLoading && <ActivityIndicator size="small" color={COLORS.primary} />}
+          {isLoading && recipes.length > 0 && <ActivityIndicator size="small" color={COLORS.primary} />}
         </View>
 
-        <FlatList
-          data={recipes}
-          keyExtractor={(item) => item._id}
-          renderItem={renderRecipeItem}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.primary} />}
-          ListEmptyComponent={
-            !isLoading ? (
-              <View style={styles.center}>
-                <Text style={styles.emptyText}>No recipes found.</Text>
-              </View>
-            ) : null
-          }
-        />
+        {isLoading && recipes.length === 0 ? (
+          renderSkeletons()
+        ) : (
+          <FlatList
+            data={recipes}
+            keyExtractor={(item) => item._id}
+            renderItem={renderRecipeItem}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={COLORS.primary} />}
+            ListEmptyComponent={
+              !isLoading ? (
+                <View style={styles.center}>
+                  <Text style={styles.emptyText}>No recipes found.</Text>
+                </View>
+              ) : null
+            }
+          />
+        )}
       </View>
     </View>
   );
@@ -282,7 +327,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.m,
-    paddingTop: SPACING.xl * 1.5,
+    paddingTop: SPACING.s,
     paddingBottom: SPACING.m,
     backgroundColor: COLORS.card,
     borderBottomWidth: 1,
@@ -411,7 +456,7 @@ const styles = StyleSheet.create({
   },
   recipeCard: {
     backgroundColor: COLORS.card,
-    borderRadius: SPACING.l,
+    borderRadius: SPACING.s,
     overflow: "hidden",
     ...SHADOWS.medium,
   },
@@ -483,5 +528,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FONTS.sizes.body,
     color: COLORS.text.secondary,
-  }
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    gap: 8,
+  },
+  tagText: {
+    fontSize: 10,
+    color: COLORS.primary,
+    backgroundColor: COLORS.primary + '10',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
 });

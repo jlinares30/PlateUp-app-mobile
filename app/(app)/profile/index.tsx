@@ -1,10 +1,14 @@
+import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
+import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from '@/src/store/useAuth';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Toast from 'react-native-toast-message';
 
 export default function ProfileScreen() {
     const router = useRouter();
@@ -14,126 +18,283 @@ export default function ProfileScreen() {
     const [email, setEmail] = useState(user?.email || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [image, setImage] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
 
-    const handleSave = async () => {
-        if (password && password !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
-            return;
+    const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
+    const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
+
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalConfig, setModalConfig] = useState({
+        title: "",
+        message: "",
+        actions: [] as ModalAction[]
+    });
+
+    const showAlert = (title: string, message: string, actions: ModalAction[] = []) => {
+        setModalConfig({ title, message, actions });
+        setModalVisible(true);
+    };
+
+    const handleImageSelection = async () => {
+        showAlert(
+            "Profile Photo",
+            "Choose an option",
+            [
+                { text: "Camera", onPress: openCamera },
+                { text: "Gallery", onPress: showImagePicker },
+                { text: "Cancel", style: "cancel" }
+            ]
+        );
+    };
+
+    const openCamera = async () => {
+        if (!cameraPermission?.granted) {
+            const permission = await requestCameraPermission();
+            if (!permission.granted) {
+                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
+                return;
+            }
         }
 
-        const data: any = {};
-        if (name !== user?.name) data.name = name;
-        if (email !== user?.email) data.email = email;
-        if (password) data.password = password;
+        const result = await ImagePicker.launchCameraAsync({
+            mediaTypes: 'images',
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
 
-        if (Object.keys(data).length === 0) {
-            setIsEditing(false);
-            return;
-        }
-
-        const success = await updateProfile(data);
-        if (success) {
-            Alert.alert('Success', 'Profile updated successfully');
-            setIsEditing(false);
-            setPassword('');
-            setConfirmPassword('');
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
         }
     };
 
-    return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                {isEditing ? (
-                    <TouchableOpacity onPress={handleSave} disabled={loading}>
-                        {loading ? <ActivityIndicator color={COLORS.primary} /> : <Text style={styles.saveText}>Save</Text>}
-                    </TouchableOpacity>
-                ) : (
-                    <TouchableOpacity onPress={() => setIsEditing(true)}>
-                        <Ionicons name="create-outline" size={24} color={COLORS.primary} />
-                    </TouchableOpacity>
-                )}
+    const showImagePicker = async () => {
+        if (!mediaPermission?.granted) {
+            const permission = await requestMediaPermission();
+            if (!permission.granted) {
+                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
+                return;
+            }
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: 'images',
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
+    };
+
+    const handleSave = async () => {
+        if (password && password !== confirmPassword) {
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Passwords do not match'
+            });
+            return;
+        }
+
+        const formData = new FormData();
+        let hasChanges = false;
+
+        if (name !== user?.name) {
+            formData.append('name', name);
+            hasChanges = true;
+        }
+        if (email !== user?.email) {
+            formData.append('email', email);
+            hasChanges = true;
+        }
+        if (password) {
+            formData.append('password', password);
+            hasChanges = true;
+        }
+        if (image) {
+            const filename = image.split('/').pop();
+            const match = /\.(\w+)$/.exec(filename ?? "");
+            const type = match ? `image/${match[1]}` : `image`;
+            // @ts-ignore
+            formData.append('image', { uri: image, name: filename, type });
+            hasChanges = true;
+        }
+
+        if (!hasChanges) {
+            setIsEditing(false);
+            return;
+        }
+
+        const success = await updateProfile(formData);
+        if (success) {
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Profile updated successfully'
+            });
+            setIsEditing(false);
+            setPassword('');
+            setConfirmPassword('');
+            setImage(null);
+        }
+    };
+
+    if (!user) {
+        return (
+            <View style={styles.container}>
+                <View style={styles.content}>
+                    <View style={styles.avatarContainer}>
+                        <Skeleton width={100} height={100} borderRadius={50} style={{ marginBottom: SPACING.m }} />
+                        <Skeleton width={150} height={32} style={{ marginBottom: 4 }} />
+                        <Skeleton width={200} height={16} />
+                    </View>
+                    <View style={styles.form}>
+                        <View style={styles.inputGroup}>
+                            <Skeleton width={60} height={14} style={{ marginBottom: 8 }} />
+                            <Skeleton width="100%" height={48} />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Skeleton width={60} height={14} style={{ marginBottom: 8 }} />
+                            <Skeleton width="100%" height={48} />
+                        </View>
+                    </View>
+                </View>
             </View>
+        );
+    }
 
-            <View style={styles.content}>
-                <Animated.View entering={FadeInDown.springify()} style={styles.avatarContainer}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
-                    </View>
-                    <Text style={styles.userName}>{user?.name}</Text>
-                    <Text style={styles.userEmail}>{user?.email}</Text>
-                </Animated.View>
+    return (
+        <View style={styles.container}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={styles.content}>
+                    <Animated.View entering={FadeInDown.springify()} style={styles.avatarContainer}>
+                        <View style={styles.avatar}>
+                            {image ? (
+                                <Image source={{ uri: image }} style={styles.avatarImage} />
+                            ) : user?.image ? (
+                                <Image source={{ uri: user.image }} style={styles.avatarImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase() || 'U'}</Text>
+                            )}
 
-                <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.form}>
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Name</Text>
-                        <TextInput
-                            style={[styles.input, !isEditing && styles.disabledInput]}
-                            value={name}
-                            onChangeText={setName}
-                            editable={isEditing}
-                            placeholder="Your Name"
-                            placeholderTextColor={COLORS.text.light}
-                        />
-                    </View>
+                            {!isEditing ? (
+                                <TouchableOpacity
+                                    style={styles.editIconBadge}
+                                    onPress={() => setIsEditing(true)}
+                                >
+                                    <Ionicons name="pencil" size={16} color={COLORS.card} />
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    style={styles.editIconBadge}
+                                    onPress={handleImageSelection}
+                                >
+                                    <Ionicons name="camera" size={16} color={COLORS.card} />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                        <Text style={styles.userName}>{user?.name}</Text>
+                        <Text style={styles.userEmail}>{user?.email}</Text>
+                    </Animated.View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email</Text>
-                        <TextInput
-                            style={[styles.input, !isEditing && styles.disabledInput]}
-                            value={email}
-                            onChangeText={setEmail}
-                            editable={isEditing}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            placeholder="Your Email"
-                            placeholderTextColor={COLORS.text.light}
-                        />
-                    </View>
+                    <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.form}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Name</Text>
+                            <TextInput
+                                style={[styles.input, !isEditing && styles.disabledInput]}
+                                value={name}
+                                onChangeText={setName}
+                                editable={isEditing}
+                                placeholder="Your Name"
+                                placeholderTextColor={COLORS.text.light}
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Email</Text>
+                            <TextInput
+                                style={[styles.input, !isEditing && styles.disabledInput]}
+                                value={email}
+                                onChangeText={setEmail}
+                                editable={isEditing}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                placeholder="Your Email"
+                                placeholderTextColor={COLORS.text.light}
+                            />
+                        </View>
+
+                        {isEditing && (
+                            <>
+                                <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
+                                    <Text style={styles.label}>New Password (Optional)</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        secureTextEntry
+                                        placeholder="Leave blank to keep current"
+                                        placeholderTextColor={COLORS.text.light}
+                                    />
+                                </Animated.View>
+                                <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
+                                    <Text style={styles.label}>Confirm New Password</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={confirmPassword}
+                                        onChangeText={setConfirmPassword}
+                                        secureTextEntry
+                                        placeholder="Confirm new password"
+                                        placeholderTextColor={COLORS.text.light}
+                                    />
+                                </Animated.View>
+                            </>
+                        )}
+                    </Animated.View>
 
                     {isEditing && (
-                        <>
-                            <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
-                                <Text style={styles.label}>New Password (Optional)</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry
-                                    placeholder="Leave blank to keep current"
-                                    placeholderTextColor={COLORS.text.light}
-                                />
-                            </Animated.View>
-                            <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
-                                <Text style={styles.label}>Confirm New Password</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    secureTextEntry
-                                    placeholder="Confirm new password"
-                                    placeholderTextColor={COLORS.text.light}
-                                />
-                            </Animated.View>
-                        </>
+                        <Animated.View entering={FadeInDown.springify()}>
+                            <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                                setIsEditing(false);
+                                setName(user?.name || '');
+                                setEmail(user?.email || '');
+                                setPassword('');
+                                setConfirmPassword('');
+                                setImage(null);
+                            }}>
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
                     )}
-                </Animated.View>
+                </View>
+            </ScrollView>
 
-                {isEditing && (
-                    <Animated.View entering={FadeInDown.springify()}>
-                        <TouchableOpacity style={styles.cancelButton} onPress={() => {
-                            setIsEditing(false);
-                            setName(user?.name || '');
-                            setEmail(user?.email || '');
-                            setPassword('');
-                            setConfirmPassword('');
-                        }}>
-                            <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
-            </View>
-        </ScrollView>
+            {isEditing && (
+                <TouchableOpacity
+                    style={styles.saveFab}
+                    onPress={handleSave}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color={COLORS.card} />
+                    ) : (
+                        <Ionicons name="checkmark" size={32} color={COLORS.card} />
+                    )}
+                </TouchableOpacity>
+            )}
+
+            <ConfirmModal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                actions={modalConfig.actions}
+            />
+        </View>
     );
 }
 
@@ -142,15 +303,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    header: {
-        paddingHorizontal: SPACING.m,
-        paddingBottom: SPACING.m,
-        backgroundColor: COLORS.card,
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.border,
-        ...SHADOWS.small,
-        zIndex: 10,
+    scrollContent: {
+        paddingBottom: 100
     },
+
     backButton: {
         padding: SPACING.xs,
     },
@@ -169,7 +325,7 @@ const styles = StyleSheet.create({
     },
     avatarContainer: {
         alignItems: 'center',
-        marginBottom: SPACING.l,
+        marginBottom: SPACING.l
     },
     avatar: {
         width: 100,
@@ -179,7 +335,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: SPACING.m,
-        ...SHADOWS.medium
+        ...SHADOWS.medium,
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 50,
     },
     avatarText: {
         fontSize: 40,
@@ -236,6 +397,32 @@ const styles = StyleSheet.create({
         color: COLORS.error,
         fontSize: FONTS.sizes.body,
         fontWeight: '600',
+    },
+    editIconBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: COLORS.primary,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.card,
+    },
+    saveFab: {
+        position: 'absolute',
+        bottom: SPACING.l,
+        right: SPACING.l,
+        backgroundColor: COLORS.accent, // Green for save
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...SHADOWS.medium,
+        zIndex: 100,
+        elevation: 5
     }
-
 });

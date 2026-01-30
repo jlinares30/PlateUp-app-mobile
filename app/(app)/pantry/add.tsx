@@ -1,11 +1,11 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     FlatList,
     Image,
     StyleSheet,
@@ -15,17 +15,9 @@ import {
     View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 
-// Reuse ingredient interface or import from types if available
-interface Ingredient {
-    _id: string;
-    name: string;
-    category?: string;
-    calories?: number;
-    image?: string;
-    unit: string;
-}
 
 export default function PantryAddScreen() {
     const router = useRouter();
@@ -68,12 +60,24 @@ export default function PantryAddScreen() {
             });
             return res.data;
         },
+
+
+        // ...
+
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pantry'] });
-            Alert.alert("Success", "Item added to pantry!");
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: "Item added to pantry!"
+            });
         },
         onError: (error: any) => {
-            Alert.alert("Error", error.response?.data?.message || "Failed to add item");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: error.response?.data?.message || "Failed to add item"
+            });
         }
     });
 
@@ -166,7 +170,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: SPACING.l,
-        paddingTop: SPACING.xl * 1.5,
+        paddingTop: SPACING.s,
         paddingBottom: SPACING.m,
         backgroundColor: COLORS.card,
         borderBottomWidth: 1,

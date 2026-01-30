@@ -7,6 +7,7 @@ interface Recipe {
     _id: string;
     title: string;
     time: string;
+    category?: string;
 }
 
 interface Props {
@@ -15,22 +16,34 @@ interface Props {
     onSelect: (recipe: Recipe) => void;
 }
 
+type FilterType = 'all' | 'my' | 'favorites';
+
 export default function RecipePicker({ visible, onClose, onSelect }: Props) {
     const [query, setQuery] = useState('');
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [loading, setLoading] = useState(false);
-    const debounceRef = useRef<number | null>(null);
+    const [filter, setFilter] = useState<FilterType>('all');
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (visible) {
-            fetchRecipes('');
+            setQuery('');
+            setFilter('all');
+            fetchRecipes('', 'all');
         }
     }, [visible]);
 
-    const fetchRecipes = async (q: string) => {
+    const fetchRecipes = async (q: string, activeFilter: FilterType) => {
         setLoading(true);
         try {
-            const res = await api.get('/recipes', { params: q ? { query: q } : {} });
+            let endpoint = '/recipes';
+            if (activeFilter === 'my') {
+                endpoint = '/recipes/my';
+            } else if (activeFilter === 'favorites') {
+                endpoint = '/recipes/favorites/all';
+            }
+
+            const res = await api.get(endpoint, { params: q ? { query: q } : {} });
             const data = res.data?.data ?? res.data;
             setRecipes(Array.isArray(data) ? data : []);
         } catch (e) {
@@ -44,14 +57,21 @@ export default function RecipePicker({ visible, onClose, onSelect }: Props) {
         setQuery(text);
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => {
-            fetchRecipes(text);
+            fetchRecipes(text, filter);
         }, 400);
+    };
+
+    const changeFilter = (newFilter: FilterType) => {
+        setFilter(newFilter);
+        fetchRecipes(query, newFilter);
     };
 
     const renderItem = ({ item }: { item: Recipe }) => (
         <TouchableOpacity style={styles.item} onPress={() => onSelect(item)}>
-            <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemTime}>{item.time}</Text>
+            <View>
+                <Text style={styles.itemTitle}>{item.title}</Text>
+                <Text style={styles.itemTime}>{item.time || 'N/A'}</Text>
+            </View>
             <Ionicons name="add-circle-outline" size={24} color="#2980b9" />
         </TouchableOpacity>
     );
@@ -66,6 +86,28 @@ export default function RecipePicker({ visible, onClose, onSelect }: Props) {
                     </TouchableOpacity>
                 </View>
 
+                {/* Filter Tabs */}
+                <View style={styles.tabs}>
+                    <TouchableOpacity
+                        style={[styles.tab, filter === 'all' && styles.activeTab]}
+                        onPress={() => changeFilter('all')}
+                    >
+                        <Text style={[styles.tabText, filter === 'all' && styles.activeTabText]}>Explorar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tab, filter === 'favorites' && styles.activeTab]}
+                        onPress={() => changeFilter('favorites')}
+                    >
+                        <Text style={[styles.tabText, filter === 'favorites' && styles.activeTabText]}>Favoritos</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tab, filter === 'my' && styles.activeTab]}
+                        onPress={() => changeFilter('my')}
+                    >
+                        <Text style={[styles.tabText, filter === 'my' && styles.activeTabText]}>Mis Recetas</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.searchBox}>
                     <Ionicons name="search" size={20} color="#7f8c8d" />
                     <TextInput
@@ -73,7 +115,6 @@ export default function RecipePicker({ visible, onClose, onSelect }: Props) {
                         placeholder="Buscar recetas..."
                         value={query}
                         onChangeText={handleSearch}
-                        autoFocus
                     />
                 </View>
 
@@ -104,6 +145,29 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 18, fontWeight: '700' },
     close: { color: '#2980b9', fontSize: 16 },
+    tabs: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        marginBottom: 10,
+        gap: 10
+    },
+    tab: {
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        backgroundColor: '#f1f2f6',
+    },
+    activeTab: {
+        backgroundColor: '#2980b9',
+    },
+    tabText: {
+        fontSize: 14,
+        color: '#7f8c8d',
+        fontWeight: '600'
+    },
+    activeTabText: {
+        color: '#fff'
+    },
     searchBox: {
         flexDirection: 'row',
         backgroundColor: '#f1f2f6',
@@ -111,6 +175,7 @@ const styles = StyleSheet.create({
         padding: 8,
         borderRadius: 8,
         alignItems: 'center',
+        marginBottom: 10,
     },
     input: { marginLeft: 8, flex: 1, fontSize: 16 },
     list: { padding: 16 },
@@ -122,7 +187,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#f1f2f6',
     },
-    itemTitle: { fontSize: 16, flex: 1, fontWeight: '500' },
-    itemTime: { fontSize: 14, color: '#95a5a6', marginRight: 10 },
+    itemTitle: { fontSize: 16, fontWeight: '500', marginBottom: 4 },
+    itemTime: { fontSize: 13, color: '#95a5a6' },
     empty: { textAlign: 'center', marginTop: 20, color: '#95a5a6' },
 });

@@ -1,13 +1,18 @@
 {
   "expo": {
-    "name": "mobile-prototype1",
-    "slug": "mobile-prototype1",
+    "name": "PlateUp",
+    "slug": "plateup",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobileprototype1",
+    "scheme": "plateup",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "jsEngine": "hermes",
     "ios": {
       "supportsTablet": true
@@ -17,7 +22,9 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.jorge.plateup",
+      "edgeToEdgeEnabled": true,
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -29,10 +36,16 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/splash.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to let you upload profile pictures and recipe images.",
+          "cameraPermission": "The app needs access to your camera to let you take photos of your recipes."
         }
       ]
     ],

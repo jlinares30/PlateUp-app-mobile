@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { COLORS, FONTS, SPACING } from "../constants/theme";
+import { COLORS, SPACING } from "../constants/theme";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuthStore } from "../store/useAuth";
 
@@ -43,16 +43,12 @@ function Sidebar() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-                {/* User Profile */}
+                {/* Logo Section */}
                 <View style={styles.profileSection}>
                     <Image
-                        source={{ uri: "https://i.pravatar.cc/300" }}  // Placeholder
-                        style={styles.avatar}
+                        source={require("@/assets/images/brand.png")}
+                        style={styles.logo}
                     />
-                    <View>
-                        <Text style={styles.userName}>{user?.name || "Guest"}</Text>
-                        <Text style={styles.userRole}>Premium Chef</Text>
-                    </View>
                 </View>
 
                 {/* Menu Items */}
@@ -96,26 +92,14 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     profileSection: {
-        flexDirection: 'row',
         alignItems: 'center',
         marginBottom: SPACING.xl,
+        paddingVertical: SPACING.s,
     },
-    avatar: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        borderWidth: 2,
-        borderColor: COLORS.card,
-        marginRight: SPACING.m,
-    },
-    userName: {
-        fontSize: FONTS.sizes.h3,
-        fontWeight: '700',
-        color: COLORS.card,
-    },
-    userRole: {
-        fontSize: FONTS.sizes.small,
-        color: 'rgba(255,255,255,0.7)',
+    logo: {
+        width: 210,
+        height: 50,
+        tintColor: COLORS.card
     },
     menuContainer: {
         flex: 1,
