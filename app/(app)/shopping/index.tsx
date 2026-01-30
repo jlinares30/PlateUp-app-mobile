@@ -2,6 +2,7 @@ import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -15,7 +16,7 @@ import {
 import Animated, { FadeInDown, SlideOutRight } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
-import { ShoppingListItem } from "../../../src/types";
+import { PantryItem, ShoppingListItem } from "../../../src/types";
 
 const ShoppingItemSkeleton = () => (
   <View style={styles.row}>
@@ -44,6 +45,47 @@ export default function ShoppingCart() {
       return res.data ?? [];
     }
   });
+
+  // Fetch Pantry for checking duplicates/merging
+  const { data: pantry = [] } = useQuery({
+    queryKey: ['pantry'],
+    queryFn: async () => {
+      const res = await api.get('/pantry');
+      return res.data ?? [];
+    }
+  });
+
+  const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
+
+  // Load added items from AsyncStorage on mount
+  React.useEffect(() => {
+    const loadAddedItems = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('addedToPantryIds');
+        if (stored) {
+          setAddedItems(new Set(JSON.parse(stored)));
+        }
+      } catch (e) {
+        console.error("Failed to load added items state", e);
+      }
+    };
+    loadAddedItems();
+  }, []);
+
+  // Helper to update state and persistence
+  const updateAddedItems = async (newAddedIds: string[]) => {
+    setAddedItems(prev => {
+      const next = new Set(prev);
+      newAddedIds.forEach(id => next.add(id));
+
+      // Persist to AsyncStorage
+      AsyncStorage.setItem('addedToPantryIds', JSON.stringify(Array.from(next))).catch(e =>
+        console.error("Failed to save added items state", e)
+      );
+
+      return next;
+    });
+  };
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalConfig, setModalConfig] = useState({
@@ -147,6 +189,96 @@ export default function ShoppingCart() {
     }
   });
 
+  // Add to Pantry Logic
+  const addToPantryMutation = useMutation({
+    mutationFn: async (itemsToAdd: ShoppingListItem[]) => {
+      const addedIds: string[] = [];
+
+      // Execute sequentially to avoid backend concurrency issues (User document version conflicts)
+      for (const item of itemsToAdd) {
+        // Resolve ingredient ID
+        const ingredientId = typeof item.ingredient === 'object' ? item.ingredient._id : item.ingredient;
+        const ingredientUnit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
+
+        // Check if exists in pantry
+        // Note: relying on the closure 'pantry' list which might be slightly stale if multiple unrelated updates happen,
+        // but typically safe for this user-initiated action.
+        const existingPantryItem = pantry.find((p: PantryItem) => {
+          const pIngId = typeof p.ingredient === 'object' ? p.ingredient._id : p.ingredient;
+          return pIngId === ingredientId;
+        });
+
+        try {
+          if (existingPantryItem) {
+            // Update quantity
+            const newQty = existingPantryItem.quantity + item.quantity;
+            await api.put(`/pantry/${existingPantryItem._id}`, { quantity: newQty });
+          } else {
+            // Add new
+            await api.post("/pantry", {
+              ingredientId,
+              quantity: item.quantity,
+              unit: ingredientUnit
+            });
+          }
+          addedIds.push(item._id);
+        } catch (error) {
+          console.error(`Failed to add item ${item._id} to pantry`, error);
+          // Continue with next item even if one fails
+        }
+      }
+
+      if (addedIds.length === 0) {
+        throw new Error("Failed to add any items");
+      }
+
+      return addedIds;
+    },
+    onSuccess: (addedIds) => {
+      queryClient.invalidateQueries({ queryKey: ['pantry'] });
+      updateAddedItems(addedIds);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: `Added ${addedIds.length} items to pantry`
+      });
+    },
+    onError: (error) => {
+      console.error(error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: "Failed to add items to pantry"
+      });
+    }
+  });
+
+  const handleAddToPantry = () => {
+    // Filter items that are checked AND not already added in this session
+    const itemsToAdd = cart.filter((item: ShoppingListItem) => item.checked && !addedItems.has(item._id));
+
+    if (itemsToAdd.length === 0) {
+      Toast.show({
+        type: 'info',
+        text1: 'No items to add',
+        text2: "Check items in your list first."
+      });
+      return;
+    }
+
+    showAlert(
+      "Add to Pantry",
+      `Add ${itemsToAdd.length} checked items to your pantry?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Add to Pantry",
+          onPress: () => addToPantryMutation.mutate(itemsToAdd)
+        }
+      ]
+    );
+  };
+
   // Helper functions
   const handleChangeQuantity = (item: ShoppingListItem, delta: number) => {
     const newQuantity = item.quantity + delta;
@@ -182,19 +314,28 @@ export default function ShoppingCart() {
     const name = typeof item.ingredient === 'object' ? item.ingredient.name : "Ingredient";
     const unit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
     const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Misc";
+    const isAdded = addedItems.has(item._id);
 
     return (
       <Animated.View
         entering={FadeInDown.duration(300).springify().damping(20)}
         exiting={SlideOutRight}
-        style={[styles.row, item.checked && styles.rowChecked]}
+        style={[
+          styles.row,
+          item.checked && styles.rowChecked,
+          isAdded && styles.rowAdded
+        ]}
       >
         <TouchableOpacity
           style={styles.checkArea}
           onPress={() => handleToggleCheck(item)}
           activeOpacity={0.7}
         >
-          <View style={[styles.checkbox, item.checked && styles.checkboxChecked]}>
+          <View style={[
+            styles.checkbox,
+            item.checked && styles.checkboxChecked,
+            isAdded && styles.checkboxAdded
+          ]}>
             {item.checked && <Ionicons name="checkmark" size={16} color="#fff" />}
           </View>
         </TouchableOpacity>
@@ -204,7 +345,11 @@ export default function ShoppingCart() {
           onPress={() => handleToggleCheck(item)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.name, item.checked && styles.textChecked]}>{name}</Text>
+          <Text style={[
+            styles.name,
+            item.checked && styles.textChecked,
+            isAdded && styles.textAdded
+          ]}>{name}</Text>
           <Text style={styles.meta}>
             {category ?? "Uncategorized"} · {unit ?? "unit"}
           </Text>
@@ -251,6 +396,10 @@ export default function ShoppingCart() {
     <View style={styles.container}>
       {cart.length > 0 && (
         <View style={styles.headerActions}>
+          <TouchableOpacity onPress={handleAddToPantry} style={styles.addToPantryBtn}>
+            <Ionicons name="nutrition" size={18} color={COLORS.primary} style={{ marginRight: 4 }} />
+            <Text style={styles.addToPantryText}>Add to Pantry</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={handleClearAll} style={styles.clearButton}>
             <Text style={styles.clearButtonText}>Clear All</Text>
           </TouchableOpacity>
@@ -342,7 +491,25 @@ const styles = StyleSheet.create({
   headerActions: {
     paddingHorizontal: SPACING.m,
     paddingTop: SPACING.m,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addToPantryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    ...SHADOWS.small
+  },
+  addToPantryText: {
+    color: COLORS.primary,
+    fontSize: FONTS.sizes.small,
+    fontWeight: '600',
   },
   clearButton: {
     paddingVertical: 6,
@@ -405,6 +572,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background, // Dimmed/different bg for checked
     opacity: 0.8,
   },
+  rowAdded: {
+    backgroundColor: '#ecfdf5', // Light green background (emerald-50)
+    borderColor: COLORS.accent,
+    borderWidth: 1,
+    opacity: 0.6
+  },
   checkArea: {
     padding: 4,
     marginRight: SPACING.s,
@@ -421,11 +594,19 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: COLORS.primary,
   },
+  checkboxAdded: {
+    backgroundColor: COLORS.accent, // Green checkbox
+    borderColor: COLORS.accent,
+  },
   info: { flex: 1, marginRight: SPACING.m },
   name: { fontSize: FONTS.sizes.body, fontWeight: "600", color: COLORS.text.primary },
   textChecked: {
     textDecorationLine: 'line-through',
     color: COLORS.text.secondary,
+  },
+  textAdded: {
+    color: COLORS.accent,
+    textDecorationLine: 'line-through'
   },
   meta: { marginTop: 4, color: COLORS.text.secondary, fontSize: FONTS.sizes.small },
   controls: { flexDirection: 'row', alignItems: "center" },

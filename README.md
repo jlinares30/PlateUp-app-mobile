@@ -55,7 +55,7 @@ This project demonstrates proficiency in **full-stack mobile development**, **st
 ### 🔙 Backend (API)
 - **Runtime**: [Node.js](https://nodejs.org/)
 - **Framework**: [Express.js](https://expressjs.com/)
-- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/) ODM
+- **Database**: [MongoDB](https://www.mongodb.com/)
 - **Image Storage**: [Cloudinary](https://cloudinary.com/)
 - **Authentication**: JWT (JSON Web Tokens)
 - **Validation**: Custom regex & DNS domain verification.
