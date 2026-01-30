@@ -27,10 +27,14 @@ export const useAuthStore = create(persist((set) => ({
   },
   register: async (name, email, password) => {
     try {
+      set({ loading: true });
       const response = await api.post("/auth/register", { name, email, password });
-      set({ user: response.data });
+      set({ user: response.data, loading: false });
+      return true;
     } catch (error) {
-      set({ error: error.response?.data?.message || "Registration failed", loading: false });
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || "Registration failed";
+      set({ error: errorMessage, loading: false });
+      return errorMessage;
     }
   },
   updateProfile: async (data) => {

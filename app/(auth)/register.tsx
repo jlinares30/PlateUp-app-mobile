@@ -22,20 +22,49 @@ export default function RegisterScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({ name: "", email: "", password: "" });
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validate = (field: string, value: string) => {
+    let newErrors = { ...errors };
+
+    if (field === "name") {
+      newErrors.name = value.trim() ? "" : "Name is required";
+    }
+    if (field === "email") {
+      if (!value.trim()) newErrors.email = "Email is required";
+      else if (!validateEmail(value)) newErrors.email = "Invalid email address";
+      else newErrors.email = "";
+    }
+    if (field === "password") {
+      newErrors.password = value.length >= 6 ? "" : "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+  };
 
   const handleSignup = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+    if (errors.name || errors.email || errors.password || !name || !email || !password) {
       return;
     }
-    const success = await register(name, email, password);
-    if (success !== null) {
+
+    const result = await register(name, email, password);
+    if (result === true) {
       Alert.alert("Success", "Account created! Please log in.");
       router.push("./login");
-    } else {
-      Alert.alert("Registration Failed", "Could not create account");
+    } else if (typeof result === 'string') {
+      if (result.toLowerCase().includes('email')) {
+        setErrors(prev => ({ ...prev, email: result }));
+      } else {
+        Alert.alert("Registration Failed", result);
+      }
     }
   };
+
+  const isFormValid = name && email && password && !errors.name && !errors.email && !errors.password;
 
   return (
     <View style={styles.container}>
@@ -54,12 +83,16 @@ export default function RegisterScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Name</Text>
               <TextInput
-                placeholder="John Doe"
+                placeholder="John Wick"
                 placeholderTextColor={COLORS.text.light}
-                style={styles.input}
+                style={[styles.input, errors.name ? styles.inputError : null]}
                 value={name}
-                onChangeText={setName}
+                onChangeText={(text) => {
+                  setName(text);
+                  validate("name", text);
+                }}
               />
+              {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -67,12 +100,16 @@ export default function RegisterScreen() {
               <TextInput
                 placeholder="hello@example.com"
                 placeholderTextColor={COLORS.text.light}
-                style={styles.input}
+                style={[styles.input, errors.email ? styles.inputError : null]}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  validate("email", text);
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
+              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -81,16 +118,20 @@ export default function RegisterScreen() {
                 placeholder="••••••••"
                 placeholderTextColor={COLORS.text.light}
                 secureTextEntry
-                style={styles.input}
+                style={[styles.input, errors.password ? styles.inputError : null]}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  validate("password", text);
+                }}
               />
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
             </View>
 
             <TouchableOpacity
-              style={styles.button}
+              style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
               onPress={handleSignup}
-              disabled={loading}
+              disabled={!isFormValid || loading}
               activeOpacity={0.8}
             >
               {loading ? (
@@ -192,4 +233,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: FONTS.sizes.body,
   },
+  inputError: {
+    borderColor: '#ef4444',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: FONTS.sizes.small,
+    marginTop: 2
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#ccc'
+  }
 });

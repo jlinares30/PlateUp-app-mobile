@@ -21,12 +21,24 @@ export default function LoginScreen() {
   const { login, error, loading } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({ email: "", password: "" });
+
+  const validate = (field: string, value: string) => {
+    let newErrors = { ...errors };
+
+    if (field === "email") {
+      newErrors.email = value.trim() ? "" : "Email is required";
+    }
+    if (field === "password") {
+      newErrors.password = value ? "" : "Password is required";
+    }
+
+    setErrors(newErrors);
+  };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
+    if (!email || !password) return;
+
     const success = await login(email, password);
     console.log(email, password);
     if (success) {
@@ -36,6 +48,8 @@ export default function LoginScreen() {
       Alert.alert("Login Failed", "Invalid credentials");
     }
   };
+
+  const isFormValid = email && password && !errors.email && !errors.password;
 
   return (
     <View style={styles.container}>
@@ -59,12 +73,16 @@ export default function LoginScreen() {
               <TextInput
                 placeholder="hello@example.com"
                 placeholderTextColor={COLORS.text.light}
-                style={styles.input}
+                style={[styles.input, errors.email ? styles.inputError : null]}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  validate("email", text);
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
+              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -73,16 +91,20 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 placeholderTextColor={COLORS.text.light}
                 secureTextEntry
-                style={styles.input}
+                style={[styles.input, errors.password ? styles.inputError : null]}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  validate("password", text);
+                }}
               />
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
             </View>
 
             <TouchableOpacity
-              style={styles.button}
+              style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={!isFormValid || loading}
               activeOpacity={0.8}
             >
               {loading ? (
@@ -184,4 +206,16 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: FONTS.sizes.body,
   },
+  inputError: {
+    borderColor: '#ef4444',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: FONTS.sizes.small,
+    marginTop: 2
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#ccc'
+  }
 });
