@@ -2,9 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "../store/useAuth";
 
 const api = axios.create({
-  baseURL: __DEV__
-    ? process.env.EXPO_PUBLIC_API_URL_DEV
-    : process.env.EXPO_PUBLIC_API_URL_PROD,
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 60000,
 });
 
