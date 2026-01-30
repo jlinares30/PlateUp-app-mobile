@@ -19,7 +19,9 @@ export default function RootLayout() {
     </View>
   );
 }
-
+// Temporalmente, añade un log para ver qué está pasando
+console.log("¿Está hidratado?:", _hasHydrated);
+console.log("Usuario actual:", user);
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="dark" />

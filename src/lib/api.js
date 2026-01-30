@@ -1,5 +1,4 @@
 import axios from "axios";
-import { useAuthStore } from "../store/useAuth";
 
 const api = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
@@ -8,6 +7,7 @@ const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   try {
+    const { useAuthStore } = await import("../store/useAuth");
     const { token } = useAuthStore.getState();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

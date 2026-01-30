@@ -1,11 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import api from "../lib/api.js";
 
 export const useAuthStore = create(persist((set) => ({
   user: null,
   _hasHydrated: false,
-      setHasHydrated: (state) => set({ _hasHydrated: state }),
+  setHasHydrated: (state) => set({ _hasHydrated: state }),
   email: null,
   token: null,
   image: null,
@@ -60,8 +61,11 @@ export const useAuthStore = create(persist((set) => ({
   logout: () => set({ user: null }),
 }),
 { name: "auth-storage",
-  onRehydrateStorage: () => (state) => {
-    state.setHasHydrated(true);
-  },
+  storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: (state) => {
+        return () => {
+          state.setHasHydrated(true);
+        };
+      },
  }
 ));
