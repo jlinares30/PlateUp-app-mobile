@@ -30,6 +30,12 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    if (error.response && error.response.status === 401) {
+      console.log("Sesión inválida, cerrando sesión en la app...");
+    
+      const { logout } = useAuthStore.getState();
+      logout(); 
+    }
     console.error('❌ Request error:', error);
     return Promise.reject(error);
   }

@@ -26,7 +26,7 @@ console.log("Usuario actual:", user);
     <QueryClientProvider client={queryClient}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
-        {user ? (
+        {user && user.id ? (
           <Stack.Screen name="(app)" />
         ) : (
           <Stack.Screen name="(auth)" />
