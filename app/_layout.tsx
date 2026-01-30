@@ -10,7 +10,11 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
 
-  const { user } = useAuthStore();
+  const { user, _hasHydrated } = useAuthStore();
+
+  if (!_hasHydrated) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -4,6 +4,8 @@ import api from "../lib/api.js";
 
 export const useAuthStore = create(persist((set) => ({
   user: null,
+  _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
   email: null,
   token: null,
   image: null,
