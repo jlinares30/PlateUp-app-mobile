@@ -1,6 +1,7 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +36,21 @@ export default function LoginScreen() {
 
     setErrors(newErrors);
   };
+  useEffect(() => {
+  const checkStorage = async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      console.log("📦 AsyncStorage keys:", keys);
+      
+      const authData = await AsyncStorage.getItem('auth-storage');
+      console.log("📦 Auth data:", authData);
+    } catch (error) {
+      console.error("Error reading storage:", error);
+    }
+  };
+  
+  checkStorage();
+}, []);
 
   const handleLogin = async () => {
     if (!email || !password) return;

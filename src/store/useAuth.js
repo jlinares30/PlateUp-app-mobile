@@ -7,15 +7,14 @@ export const useAuthStore = create(
   persist(
     (set, get) => ({
       user: null,
-      _hasHydrated: false,
       email: null,
       token: null,
       image: null,
       loading: false,
       error: null,
+      _hasHydrated: false,
       
       setHasHydrated: (state) => {
-        console.log("Setting _hasHydrated to:", state);
         set({ _hasHydrated: state });
       },
       
@@ -23,7 +22,7 @@ export const useAuthStore = create(
         try {
           set({ loading: true, error: null });
           const response = await api.post("/auth/login", { email, password });
-          console.log("Login successful:", response.data.user);
+          console.log("✅ Login successful");
           set({ 
             user: response.data.user,
             token: response.data.token,
@@ -36,7 +35,7 @@ export const useAuthStore = create(
             error: error.response?.data?.message || "Login failed", 
             loading: false 
           });
-          console.error("Login error:", error);
+          console.error("❌ Login error:", error);
           return false;
         }
       },
@@ -57,13 +56,11 @@ export const useAuthStore = create(
       updateProfile: async (data) => {
         try {
           set({ loading: true, error: null });
-          console.log("[DEBUG] Updating profile with data:", data);
           const response = await api.put("/auth/profile", data, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
-          console.log("[DEBUG] Update profile response:", response.data);
           set({ 
             user: response.data.user, 
             image: response.data.user.image, 
@@ -71,7 +68,7 @@ export const useAuthStore = create(
           });
           return true;
         } catch (error) {
-          console.error("[DEBUG] Profile update error:", error.response?.data || error.message);
+          console.error("Profile update error:", error.response?.data || error.message);
           set({ 
             error: error.response?.data?.message || "Profile update failed", 
             loading: false 
@@ -81,6 +78,7 @@ export const useAuthStore = create(
       },
       
       logout: () => {
+        console.log("🚪 Logging out");
         set({
           user: null,
           token: null,
@@ -93,22 +91,9 @@ export const useAuthStore = create(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => {
-        console.log("🔄 Hydration started");
-        return (state, error) => {
-          if (error) {
-            console.error("❌ Hydration error:", error);
-          } else {
-            console.log("✅ Hydration complete:", {
-              hasUser: !!state?.user,
-              hasToken: !!state?.token,
-            });
-          }
-          // IMPORTANTE: Siempre establecer hydrated en true
-          if (state) {
-            state.setHasHydrated(true);
-          }
-        };
+      onRehydrateStorage: () => (state) => {
+        console.log("🔄 Hydration complete");
+        state?.setHasHydrated(true);
       },
     }
   )
