@@ -10,7 +10,8 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
 
-  const { user, _hasHydrated } = useAuthStore();
+  const { user, token, _hasHydrated } = useAuthStore();
+  const isAuthenticated = !!user && !!token;
 
   if (!_hasHydrated) {
   return (
@@ -20,13 +21,15 @@ export default function RootLayout() {
   );
 }
 // Temporalmente, añade un log para ver qué está pasando
-console.log("¿Está hidratado?:", _hasHydrated);
-console.log("Usuario actual:", user);
+console.log("Hydrated:", _hasHydrated);
+console.log("User:", user);
+console.log("Token:", token);
+
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
-        {user && user.id ? (
+        {isAuthenticated ? (
           <Stack.Screen name="(app)" />
         ) : (
           <Stack.Screen name="(auth)" />

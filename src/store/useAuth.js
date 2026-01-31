@@ -58,14 +58,22 @@ export const useAuthStore = create(persist((set) => ({
       return false;
     }
   },
-  logout: () => set({ user: null }),
+  logout: () => set({
+    user: null,
+    token: null,
+    email: null,
+    image: null,
+    error: null
+  }),
 }),
-{ name: "auth-storage",
-  storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: (state) => {
-        return () => {
-          state.setHasHydrated(true);
-        };
-      },
- }
+  {
+    name: "auth-storage",
+    storage: createJSONStorage(() => AsyncStorage),
+    onRehydrateStorage: () => (state) => {
+      if (!state?.token) {
+        state.logout();
+      }
+      state.setHasHydrated(true);
+    },
+  }
 ));
