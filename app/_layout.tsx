@@ -9,13 +9,25 @@ import { useAuthStore } from "../src/store/useAuth.js";
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
-  const { user, token, _hasHydrated } = useAuthStore();
+  const { user, token, _hasHydrated, setHasHydrated } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
   const isAuthenticated = !!user && !!token;
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+
+  // Timeout de seguridad: forzar hidratación después de 3 segundos
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!_hasHydrated) {
+        console.warn("⚠️ Forcing hydration after timeout");
+        setHasHydrated(true);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [_hasHydrated]);
 
   // Esperar a que la navegación esté lista
   useEffect(() => {
@@ -25,7 +37,6 @@ function RootLayoutNav() {
   }, [navigationState]);
 
   useEffect(() => {
-    // CRÍTICO: No hacer NADA hasta que se haya hidratado Y la navegación esté lista
     if (!_hasHydrated || !isNavigationReady) {
       console.log("⏳ Waiting... hydrated:", _hasHydrated, "navReady:", isNavigationReady);
       return;
@@ -44,7 +55,6 @@ function RootLayoutNav() {
     }
   }, [isAuthenticated, segments, isNavigationReady, _hasHydrated]);
 
-  // Mostrar loading mientras NO esté hidratado O la navegación no esté lista
   if (!_hasHydrated || !isNavigationReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
