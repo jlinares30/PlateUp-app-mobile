@@ -135,7 +135,31 @@ npx expo start
 
 ---
 
-## 💡 Future Improvements
+## � Security & Session Management
+
+### 🔒 Session Management & Persistence (Android)
+During the development of PlateUp, an unexpected behavior was identified where the user session persisted even after clearing the cache or reinstalling the application. This issue was resolved through advanced persistence configuration and Android security policies.
+
+#### 🛠️ Problem: "Phantom" Persistence
+Due to Google's Auto Backup feature, data stored in AsyncStorage (managed by Zustand's persist middleware) was automatically backed up to the cloud. This caused the system to restore the old authentication token upon reinstalling the APK, allowing access to the Dashboard without a prior login.
+
+#### ✅ Implemented Solution
+1. **Disable Auto Backup**: The application manifest was configured to prevent saving sensitive data in backups not encrypted by the developer.
+
+```json
+// app.json
+"android": {
+  "allowBackup": false
+}
+```
+
+2. **Hydration & State Validation**: A "Hydration Guard" was implemented in the root component (RootLayout) using Zustand's `onRehydrateStorage`. This ensures that redirect logic only executes once the app has confirmed the integrity of local data.
+
+3. **Backend Synchronization**: A response interceptor was added in Axios to handle 401 Unauthorized errors. If the server rejects the token (due to expiration or invalidity), the app automatically executes a `logout()` to clear local state and redirect the user to the login screen.
+
+---
+
+## �💡 Future Improvements
 - [ ] **Social Sharing**: Share meal plans with friends.
 - [ ] **Nutritional Analysis**: Auto-calculate calories and macros based on ingredients.
 - [ ] **Offline Mode**: Cache recipes for offline access.
