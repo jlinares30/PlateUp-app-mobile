@@ -15,6 +15,7 @@ export const useAuthStore = create(
       error: null,
       
       setHasHydrated: (state) => {
+        console.log("Setting _hasHydrated to:", state);
         set({ _hasHydrated: state });
       },
       
@@ -92,18 +93,20 @@ export const useAuthStore = create(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
-      onRehydrateStorage: () => (state) => {
-        console.log("Starting hydration...");
-        return (hydratedState, error) => {
+      onRehydrateStorage: () => {
+        console.log("🔄 Hydration started");
+        return (state, error) => {
           if (error) {
-            console.error("Hydration error:", error);
-          }
-          if (hydratedState) {
-            console.log("Hydration complete:", {
-              hasUser: !!hydratedState.user,
-              hasToken: !!hydratedState.token
+            console.error("❌ Hydration error:", error);
+          } else {
+            console.log("✅ Hydration complete:", {
+              hasUser: !!state?.user,
+              hasToken: !!state?.token,
             });
-            hydratedState.setHasHydrated(true);
+          }
+          // IMPORTANTE: Siempre establecer hydrated en true
+          if (state) {
+            state.setHasHydrated(true);
           }
         };
       },
