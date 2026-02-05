@@ -37,20 +37,20 @@ export default function LoginScreen() {
     setErrors(newErrors);
   };
   useEffect(() => {
-  const checkStorage = async () => {
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-      console.log("📦 AsyncStorage keys:", keys);
-      
-      const authData = await AsyncStorage.getItem('auth-storage');
-      console.log("📦 Auth data:", authData);
-    } catch (error) {
-      console.error("Error reading storage:", error);
-    }
-  };
-  
-  checkStorage();
-}, []);
+    const checkStorage = async () => {
+      try {
+        const keys = await AsyncStorage.getAllKeys();
+        console.log("📦 AsyncStorage keys:", keys);
+
+        const authData = await AsyncStorage.getItem('auth-storage');
+        console.log("📦 Auth data:", authData);
+      } catch (error) {
+        console.error("Error reading storage:", error);
+      }
+    };
+
+    checkStorage();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) return;

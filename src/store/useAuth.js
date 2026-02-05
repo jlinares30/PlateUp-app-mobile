@@ -13,33 +13,33 @@ export const useAuthStore = create(
       loading: false,
       error: null,
       _hasHydrated: false,
-      
+
       setHasHydrated: (state) => {
         set({ _hasHydrated: state });
       },
-      
+
       login: async (email, password) => {
         try {
           set({ loading: true, error: null });
           const response = await api.post("/auth/login", { email, password });
           console.log("✅ Login successful");
-          set({ 
+          set({
             user: response.data.user,
             token: response.data.token,
             email: response.data.user.email,
-            loading: false 
+            loading: false
           });
           return true;
         } catch (error) {
-          set({ 
-            error: error.response?.data?.message || "Login failed", 
-            loading: false 
+          set({
+            error: error.response?.data?.message || "Login failed",
+            loading: false
           });
           console.error("❌ Login error:", error);
           return false;
         }
       },
-      
+
       register: async (name, email, password) => {
         try {
           set({ loading: true, error: null });
@@ -52,7 +52,7 @@ export const useAuthStore = create(
           return errorMessage;
         }
       },
-      
+
       updateProfile: async (data) => {
         try {
           set({ loading: true, error: null });
@@ -61,22 +61,22 @@ export const useAuthStore = create(
               'Content-Type': 'multipart/form-data',
             },
           });
-          set({ 
-            user: response.data.user, 
-            image: response.data.user.image, 
-            loading: false 
+          set({
+            user: response.data.user,
+            image: response.data.user.image,
+            loading: false
           });
           return true;
         } catch (error) {
           console.error("Profile update error:", error.response?.data || error.message);
-          set({ 
-            error: error.response?.data?.message || "Profile update failed", 
-            loading: false 
+          set({
+            error: error.response?.data?.message || "Profile update failed",
+            loading: false
           });
           return false;
         }
       },
-      
+
       logout: () => {
         console.log("🚪 Logging out");
         set({
@@ -91,6 +91,12 @@ export const useAuthStore = create(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        user: state.user,
+        email: state.email,
+        token: state.token,
+        image: state.image,
+      }),
       onRehydrateStorage: () => (state) => {
         console.log("🔄 Hydration complete");
         state?.setHasHydrated(true);

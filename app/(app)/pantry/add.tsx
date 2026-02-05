@@ -50,20 +50,26 @@ export default function PantryAddScreen() {
         },
     });
 
+    // Fetch Pantry to filter out existing items
+    const { data: pantry = [] } = useQuery({
+        queryKey: ['pantry'],
+        queryFn: async () => {
+            const res = await api.get('/pantry');
+            return res.data;
+        },
+    });
+
     // Add to Pantry Mutation
     const addMutation = useMutation({
         mutationFn: async (item: Ingredient) => {
             const res = await api.post("/pantry", {
                 ingredientId: item._id,
-                quantity: 1,
+                stockLevel: 'FULL',
+
                 unit: item.unit
             });
             return res.data;
         },
-
-
-        // ...
-
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pantry'] });
             Toast.show({
@@ -79,6 +85,19 @@ export default function PantryAddScreen() {
                 text2: error.response?.data?.message || "Failed to add item"
             });
         }
+    });
+
+    const filteredIngredients = ingredients.filter((ing: Ingredient) => {
+        // Check if ingredient exists in pantry with 'FULL' stock level
+        const pantryItem = pantry.find((p: any) => {
+            const pIngId = typeof p.ingredient === 'object' ? p.ingredient._id : p.ingredient;
+            return pIngId === ing._id;
+        });
+
+        // Return true (keep) if NOT in pantry OR (in pantry but NOT full)
+        // User requirement: "ingredients que no estan full en la lista oficial del pantry"
+        // So if it is 'FULL', exclude it.
+        return !pantryItem || pantryItem.stockLevel !== 'FULL';
     });
 
     const renderItem = ({ item, index }: { item: Ingredient; index: number }) => (
@@ -141,7 +160,7 @@ export default function PantryAddScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={ingredients}
+                    data={filteredIngredients}
                     keyExtractor={(item) => item._id}
                     renderItem={renderItem}
                     contentContainerStyle={styles.list}

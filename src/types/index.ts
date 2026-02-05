@@ -92,6 +92,7 @@ export interface PantryItem {
         category?: string;
         image?: string;
     } | string;
-    quantity: number;
+    quantity?: number;
     unit?: string;
+    stockLevel?: 'FULL' | 'MEDIUM' | 'LOW' | 'OUT';
 }

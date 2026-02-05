@@ -204,7 +204,7 @@ export default function ShoppingCart() {
         // Note: relying on the closure 'pantry' list which might be slightly stale if multiple unrelated updates happen,
         // but typically safe for this user-initiated action.
         const existingPantryItem = pantry.find((p: PantryItem) => {
-          const pIngId = typeof p.ingredient === 'object' ? p.ingredient._id : p.ingredient;
+          const pIngId = (p.ingredient && typeof p.ingredient === 'object') ? p.ingredient._id : p.ingredient;
           return pIngId === ingredientId;
         });
 
@@ -412,10 +412,10 @@ export default function ShoppingCart() {
           <Text style={styles.summaryLabel}>Items</Text>
         </View>
         <View style={styles.summaryDivider} />
-        <View style={styles.summaryItem}>
+        {/* <View style={styles.summaryItem}>
           <Text style={styles.summaryValue}>{totalItems}</Text>
           <Text style={styles.summaryLabel}>Total Qty</Text>
-        </View>
+        </View> */}
       </View>
 
       {isLoading && cart.length === 0 ? (

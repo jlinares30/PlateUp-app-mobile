@@ -34,8 +34,8 @@ export default function PantryScreen() {
 
     // 3. Update Mutation
     const updateMutation = useMutation({
-        mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
-            await api.put(`/pantry/${itemId}`, { quantity });
+        mutationFn: async ({ itemId, stockLevel }: { itemId: string; stockLevel: 'FULL' | 'MEDIUM' | 'LOW' | 'OUT' }) => {
+            await api.put(`/pantry/${itemId}`, { stockLevel });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pantry'] });
@@ -69,16 +69,23 @@ export default function PantryScreen() {
         confirmDelete(itemId);
     };
 
-    const handleQuantityChange = (item: PantryItem, newQuantity: number) => {
-        if (newQuantity <= 0) {
-            handleRemove(item._id);
-        } else {
-            updateMutation.mutate({ itemId: item._id, quantity: newQuantity });
+    const handleStockChange = (item: PantryItem, newLevel: 'FULL' | 'MEDIUM' | 'LOW') => {
+        updateMutation.mutate({ itemId: item._id, stockLevel: newLevel });
+    };
+
+    const getStockColor = (level?: string) => {
+        switch (level) {
+            case 'FULL': return '#10b981'; // Green
+            case 'MEDIUM': return '#f59e0b'; // Amber
+            case 'LOW': return '#f97316'; // Orange
+            //case 'OUT': return '#ef4444'; // Red
+            default: return COLORS.text.secondary;
         }
     };
 
     const renderItem = ({ item, index }: { item: PantryItem; index: number }) => {
-        const ingredient = typeof item.ingredient === 'object' ? item.ingredient : { name: 'Unknown', _id: '', unit: '', image: undefined };
+        const ingredient = (item.ingredient && typeof item.ingredient === 'object') ? item.ingredient : { name: 'Unknown', _id: '', unit: '', image: undefined };
+        const currentLevel = item.stockLevel || 'FULL';
 
         return (
             <Animated.View
@@ -96,31 +103,35 @@ export default function PantryScreen() {
 
                 <View style={styles.itemInfo}>
                     <Text style={styles.itemName}>{ingredient.name}</Text>
-                    <Text style={styles.itemUnit}>{item.quantity} {item.unit || ingredient.unit || 'units'}</Text>
+                    <Text style={[styles.itemUnit, { color: getStockColor(currentLevel), fontWeight: '600' }]}>
+                        {currentLevel}
+                    </Text>
                 </View>
 
                 <View style={styles.controls}>
-                    <TouchableOpacity
-                        onPress={() => handleQuantityChange(item, item.quantity - 1)}
-                        style={styles.controlButton}
-                    >
-                        <Ionicons name="remove" size={16} color={COLORS.text.primary} />
-                    </TouchableOpacity>
-
-                    <Text style={styles.quantity}>{item.quantity}</Text>
-
-                    <TouchableOpacity
-                        onPress={() => handleQuantityChange(item, item.quantity + 1)}
-                        style={styles.controlButton}
-                    >
-                        <Ionicons name="add" size={16} color={COLORS.text.primary} />
-                    </TouchableOpacity>
+                    {(['FULL', 'MEDIUM', 'LOW'] as const).map((level) => (
+                        <TouchableOpacity
+                            key={level}
+                            onPress={() => handleStockChange(item, level)}
+                            style={[
+                                styles.levelButton,
+                                currentLevel === level && { backgroundColor: getStockColor(level) }
+                            ]}
+                        >
+                            <Text style={[
+                                styles.levelButtonText,
+                                currentLevel === level && { color: 'white' }
+                            ]}>
+                                {level.charAt(0)}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
 
                     <TouchableOpacity
                         onPress={() => handleRemove(item._id)}
-                        style={[styles.controlButton, { marginLeft: SPACING.s, backgroundColor: '#fee2e2' }]}
+                        style={[styles.removeButton]}
                     >
-                        <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
                     </TouchableOpacity>
                 </View>
             </Animated.View>
@@ -183,7 +194,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: COLORS.background,
     },
-    // ... existing styles ...
     addButton: {
         position: 'absolute',
         bottom: SPACING.l,
@@ -198,7 +208,6 @@ const styles = StyleSheet.create({
         zIndex: 100,
         elevation: 5
     },
-    // ... other styles ...
     center: {
         flex: 1,
         justifyContent: 'center',
@@ -239,22 +248,31 @@ const styles = StyleSheet.create({
     controls: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: SPACING.xs,
+        gap: 6,
     },
-    controlButton: {
-        width: 32,
-        height: 32,
+    levelButton: {
+        width: 35,
+        height: 35,
+        borderRadius: 17,
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    levelButtonText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: COLORS.text.secondary,
+    },
+    removeButton: {
+        width: 28,
+        height: 28,
+        backgroundColor: '#fee2e2',
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-    },
-    quantity: {
-        fontSize: FONTS.sizes.body,
-        fontWeight: '600',
-        minWidth: 24,
-        textAlign: 'center',
-        color: COLORS.text.primary
+        marginLeft: 4,
     },
     errorText: {
         color: COLORS.error,
