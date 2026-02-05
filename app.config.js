@@ -16,8 +16,8 @@ export default {
       policy: "appVersion"
     },
     splash: {
-      image: "./assets/images/splash.png",
-      resizeMode: "cover",
+      image: "./assets/images/adaptive-icon.png",
+      resizeMode: "contain",
       backgroundColor: "#302783"
     },
     ios: {
@@ -34,7 +34,7 @@ export default {
     },
     plugins: [
       "expo-router",
-      ["expo-splash-screen", { "backgroundColor": "#302783", "image": "./assets/images/splash.png", "resizeMode": "cover" }],
+      ["expo-splash-screen", { "backgroundColor": "#302783", "image": "./assets/images/adaptive-icon.png", "resizeMode": "contain" }],
       ["expo-image-picker", { "photosPermission": "The app needs access to your photos..." }]
     ],
     extra: {
