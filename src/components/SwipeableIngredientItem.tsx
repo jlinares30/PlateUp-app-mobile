@@ -14,11 +14,12 @@ type Props = {
   item: Ingredient;
   onPress?: () => void;
   onAdd?: (item: Ingredient) => void;
+  shouldAnimate?: boolean;
 };
 
-export default function SwipeableIngredientItem({ item, onPress, onAdd }: Props) {
+export default function SwipeableIngredientItem({ item, onPress, onAdd, shouldAnimate }: Props) {
   return (
-    <SwipeableRow onSwipe={() => onAdd?.(item)} style={styles.container}>
+    <SwipeableRow onSwipe={() => onAdd?.(item)} style={styles.container} shouldAnimate={shouldAnimate}>
       <TouchableOpacity style={styles.row} onPress={() => onPress?.()} activeOpacity={0.8}>
         <View style={styles.info}>
           <Text style={styles.name}>{item.name}</Text>
@@ -26,7 +27,7 @@ export default function SwipeableIngredientItem({ item, onPress, onAdd }: Props)
             {item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#cbd5e1" style={styles.arrow} />
+        <Ionicons name="arrow-forward-circle-outline" size={24} color="#cbd5e1" style={styles.arrow} />
       </TouchableOpacity>
     </SwipeableRow>
   );

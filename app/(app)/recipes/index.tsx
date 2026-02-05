@@ -28,9 +28,12 @@ const RecipeSkeleton = () => (
   </View>
 );
 
+import { useOnboarding } from "@/src/hooks/useOnboarding";
+
 export default function RecipesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const showOnboarding = useOnboarding('onboarding_swipe_recipes');
 
   const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
   const [recipeQuery, setRecipeQuery] = useState<string>("");
@@ -164,6 +167,7 @@ export default function RecipesScreen() {
         onSwipe={() => handleSwipeRecipe(item)}
         style={{ marginBottom: SPACING.m }}
         actionLabel="Add All"
+        shouldAnimate={index === 0 && showOnboarding}
       >
         <Link href={`/recipes/${item._id}`} asChild>
           <TouchableOpacity style={styles.recipeCard} activeOpacity={0.9}>

@@ -1,5 +1,6 @@
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { useOnboarding } from "@/src/hooks/useOnboarding";
 import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,6 +8,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -18,7 +20,6 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
 import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
-
 
 const IngredientSkeleton = () => (
   <View style={{
@@ -41,6 +42,7 @@ const IngredientSkeleton = () => (
 export default function IngredientsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const showOnboarding = useOnboarding('onboarding_swipe_ingredients');
 
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState<string>("");
@@ -55,7 +57,7 @@ export default function IngredientsScreen() {
     };
   }, [query]);
 
-  // Fetch Ingredients with useQuery
+  // Fetch Ingredients
   const {
     data: ingredients = [],
     isLoading,
@@ -74,10 +76,21 @@ export default function IngredientsScreen() {
     staleTime: 1000 * 60 * 5 // 5 minutes cache
   });
 
+  // Fetch Pantry for Check
+  const {
+    data: pantry = []
+  } = useQuery({
+    queryKey: ['pantry'],
+    queryFn: async () => {
+      const res = await api.get('/pantry');
+      return res.data ?? [];
+    }
+  });
+
   // Add Mutation
   const addMutation = useMutation({
     mutationFn: async (item: Ingredient) => {
-      const res = await api.post("/shopping-list", {
+      await api.post("/shopping-list", {
         ingredientId: item._id,
         quantity: 1,
         unit: item.unit || 'unit'
@@ -100,6 +113,28 @@ export default function IngredientsScreen() {
     }
   });
 
+  // Handle Add Logic with Pantry Check
+  const handleAdd = (item: Ingredient) => {
+    // Check if item exists in pantry with FULL stock
+    const pantryItem = pantry.find((p: any) => {
+      const pId = typeof p.ingredient === 'object' ? p.ingredient._id : p.ingredient;
+      return pId === item._id;
+    });
+
+    if (pantryItem && pantryItem.stockLevel === 'FULL') {
+      Alert.alert(
+        "Already Fully Stocked",
+        `You already have "${item.name}" fully stocked in your pantry. Do you want to add it anyway?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Add Anyway", onPress: () => addMutation.mutate(item) }
+        ]
+      );
+    } else {
+      addMutation.mutate(item);
+    }
+  };
+
   /* 
    * Render Item using SwipeableIngredientItem
    */
@@ -108,7 +143,8 @@ export default function IngredientsScreen() {
       <SwipeableIngredientItem
         item={item}
         onPress={() => router.push(`./ingredients/${item._id}`)}
-        onAdd={(authItem) => addMutation.mutate(authItem)}
+        onAdd={(authItem) => handleAdd(authItem)}
+        shouldAnimate={index === 0 && showOnboarding}
       />
     </Animated.View>
   );

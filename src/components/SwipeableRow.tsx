@@ -24,6 +24,7 @@ interface Props {
     backColor?: string;
     iconName?: keyof typeof Ionicons.glyphMap;
     actionLabel?: string;
+    shouldAnimate?: boolean;
 }
 
 export default function SwipeableRow({
@@ -32,10 +33,24 @@ export default function SwipeableRow({
     style,
     backColor = '#2ecc71',
     iconName = 'cart',
-    actionLabel = 'Agregar'
+    actionLabel = 'Agregar',
+    shouldAnimate = false
 }: Props) {
     const translateX = useSharedValue(0);
     const hasVibrated = useSharedValue(false); // Use shared value for logic
+
+    // Programmatic animation for onboarding
+    React.useEffect(() => {
+        if (shouldAnimate) {
+            // Wait a bit for layout
+            const timeout = setTimeout(() => {
+                translateX.value = withTiming(80, { duration: 600 }, () => {
+                    translateX.value = withTiming(0, { duration: 600 });
+                });
+            }, 500);
+            return () => clearTimeout(timeout);
+        }
+    }, [shouldAnimate]);
 
     // Move side effects to reaction
     useAnimatedReaction(

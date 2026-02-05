@@ -1,7 +1,9 @@
 import axios from "axios";
+import { API_URL } from "../../config.js";
+
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  baseURL: API_URL,
   timeout: 60000,
 });
 

@@ -127,7 +127,10 @@ export default function MealPlanDetail() {
                   key={meal._id}
                   style={styles.mealRow}
                   activeOpacity={0.8}
-                  onPress={() => openRecipe(typeof meal.recipe === 'string' ? meal.recipe : meal.recipe._id)}
+                  onPress={() => {
+                    const recipeId = typeof meal.recipe === 'string' ? meal.recipe : meal.recipe?._id;
+                    if (recipeId) openRecipe(recipeId);
+                  }}
                 >
                   <View style={styles.mealIcon}>
                     <Ionicons
@@ -139,7 +142,7 @@ export default function MealPlanDetail() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.mealType}>{meal.type.toUpperCase()}</Text>
                     <Text style={styles.mealRecipe}>
-                      {typeof meal.recipe === 'string' ? "Recipe" : meal.recipe.title}
+                      {typeof meal.recipe === 'string' ? "Recipe" : (meal.recipe?.title ?? "Unknown Recipe")}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={COLORS.text.light} />
