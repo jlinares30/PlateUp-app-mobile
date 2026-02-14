@@ -81,6 +81,11 @@ export interface ShoppingListItem {
     quantity: number;
     unit?: string;
     checked: boolean;
+    contributors?: {
+        recipeTitle: string;
+        quantity: number;
+        unit?: string;
+    }[];
 }
 
 export interface PantryItem {

@@ -110,22 +110,41 @@ export default function RecipesScreen() {
       const res = await api.get(`/recipes/${recipe._id}`);
       const fullRecipe = res.data?.data ?? res.data;
 
+
+
       if (!fullRecipe.ingredients || fullRecipe.ingredients.length === 0) {
         throw new Error("No ingredients in recipe");
       }
 
-      const promises = fullRecipe.ingredients.map(async (ingObj: any) => {
-        const ingData = typeof ingObj.ingredient === 'object' ? ingObj.ingredient : null;
-        if (ingData) {
-          await api.post("/shopping-list", {
-            ingredientId: ingData._id,
-            quantity: ingObj.quantity || 1,
-            unit: ingObj.unit
-          });
-        }
-      });
-      await Promise.all(promises);
-      return fullRecipe.ingredients.length;
+      const itemsToAdd = fullRecipe.ingredients
+        .map((ingObj: any) => {
+          const ingData = typeof ingObj.ingredient === 'object' ? ingObj.ingredient : null;
+          if (ingData) {
+            let parsedQty = parseFloat(String(ingObj.quantity));
+
+            // Stricter check: if it's NaN or not finite or <= 0, default to 1
+            if (!Number.isFinite(parsedQty) || parsedQty <= 0) {
+              parsedQty = 1;
+            }
+
+            return {
+              ingredientId: ingData._id,
+              quantity: parsedQty,
+              unit: ingObj.unit,
+              recipeTitle: recipe.title
+            };
+          }
+          return null;
+        })
+        .filter((i: any) => i !== null);
+
+
+
+      if (itemsToAdd.length > 0) {
+        await api.post("/shopping-list", itemsToAdd);
+      }
+
+      return itemsToAdd.length;
     },
     onSuccess: (count, variables) => {
       Toast.show({

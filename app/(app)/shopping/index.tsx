@@ -5,12 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
@@ -34,46 +33,28 @@ const ShoppingItemSkeleton = () => (
   </View>
 );
 
-const ShoppingItemRow = ({
-  item,
-  index,
-  isAdded,
+const GroupedShoppingItemRow = ({
+  group,
   onToggleCheck,
   onChangeQuantity,
   onRemove,
-  isUpdating
+  isUpdating,
+  isAddedToPantry
 }: {
-  item: ShoppingListItem;
-  index: number;
-  isAdded: boolean;
-  onToggleCheck: (item: ShoppingListItem) => void;
+  group: {
+    ingredientId: string;
+    name: string;
+    items: ShoppingListItem[];
+    checked: boolean;
+  };
+  onToggleCheck: (items: ShoppingListItem[]) => void;
   onChangeQuantity: (item: ShoppingListItem, newQty: number) => void;
   onRemove: (id: string) => void;
   isUpdating: boolean;
+  isAddedToPantry: boolean;
 }) => {
-  const [localQty, setLocalQty] = useState(String(item.quantity));
-
-  // Sync local state when item.quantity changes from outside (e.g. buttons)
-  useEffect(() => {
-    setLocalQty(String(item.quantity));
-  }, [item.quantity]);
-
-  // Debounce logic for manual input
-  useEffect(() => {
-    const num = parseInt(localQty, 10);
-    // Only trigger update if valid number, different from current prop, and we haven't just synced from prop
-    if (!isNaN(num) && num > 0 && num !== item.quantity) {
-      const timer = setTimeout(() => {
-        onChangeQuantity(item, num);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [localQty]);
-
-  // Handle populated ingredient or fallback
-  const name = typeof item.ingredient === 'object' ? item.ingredient.name : "Ingredient";
-  const unit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
-  const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Misc";
+  // Check if all items in group are checked
+  const isGroupChecked = group.items.every(i => i.checked);
 
   return (
     <Animated.View
@@ -81,72 +62,87 @@ const ShoppingItemRow = ({
       exiting={SlideOutRight}
       style={[
         styles.row,
-        item.checked && styles.rowChecked,
-        isAdded && styles.rowAdded
+        isGroupChecked && styles.rowChecked,
+        isAddedToPantry && styles.rowAdded // Apply green bg
       ]}
     >
+      {/* Checkbox for the whole group */}
       <TouchableOpacity
         style={styles.checkArea}
-        onPress={() => onToggleCheck(item)}
+        onPress={() => onToggleCheck(group.items)}
         activeOpacity={0.7}
       >
         <View style={[
           styles.checkbox,
-          item.checked && styles.checkboxChecked,
-          isAdded && styles.checkboxAdded
+          isGroupChecked && styles.checkboxChecked,
+          isAddedToPantry && styles.checkboxAdded // Apply green checkbox
         ]}>
-          {item.checked && <Ionicons name="checkmark" size={16} color="#fff" />}
+          {(isGroupChecked || isAddedToPantry) && <Ionicons name="checkmark" size={16} color="#fff" />}
         </View>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.info}
-        onPress={() => onToggleCheck(item)}
-        activeOpacity={0.7}
-      >
+      <View style={{ flex: 1 }}>
         <Text style={[
           styles.name,
-          item.checked && styles.textChecked,
-          isAdded && styles.textAdded
-        ]}>{name}</Text>
-        <Text style={styles.meta}>
-          {category ?? "Uncategorized"} · {unit ?? "unit"}
-        </Text>
-      </TouchableOpacity>
+          isGroupChecked && styles.textChecked,
+          isAddedToPantry && styles.textAdded // Apply green text strikethrough
+        ]}>{group.name}</Text>
 
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={styles.qtyBtn}
-          onPress={() => onChangeQuantity(item, item.quantity - 1)}
-          disabled={isUpdating}
-        >
-          <Ionicons name="remove" size={16} color={COLORS.text.primary} />
-        </TouchableOpacity>
+        {/* Variants List */}
+        <View style={{ marginTop: 8, gap: 8 }}>
+          {group.items.map((item, idx) => {
+            const unit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
+            const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Misc";
 
-        <TextInput
-          style={[styles.qtyInput, item.checked && { opacity: 0.5 }]}
-          value={localQty}
-          onChangeText={setLocalQty}
-          keyboardType="numeric"
-          selectTextOnFocus
-          returnKeyType="done"
-        />
+            return (
+              <View key={item._id} style={styles.variantRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.meta}>
+                    {category ?? "Uncategorized"} · {item.unit || unit || "unit"}
+                  </Text>
+                  {item.contributors && item.contributors.length > 0 && (
+                    <View style={{ marginTop: 2 }}>
+                      {item.contributors.map((contrib, cIdx) => (
+                        <Text key={cIdx} style={{ fontSize: 10, color: COLORS.text.secondary }}>
+                          {contrib.quantity} {contrib.unit || ''} (para {contrib.recipeTitle})
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+                </View>
 
-        <TouchableOpacity
-          style={styles.qtyBtn}
-          onPress={() => onChangeQuantity(item, item.quantity + 1)}
-          disabled={isUpdating}
-        >
-          <Ionicons name="add" size={16} color={COLORS.text.primary} />
-        </TouchableOpacity>
+                {/* Controls for this variant */}
+                <View style={styles.controls}>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => onChangeQuantity(item, item.quantity - 1)}
+                    disabled={isUpdating || isAddedToPantry} // Disable if added
+                  >
+                    <Ionicons name="remove" size={14} color={COLORS.text.primary} />
+                  </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.removeBtn}
-          onPress={() => onRemove(item._id)}
-          disabled={isUpdating}
-        >
-          <Ionicons name="trash-outline" size={20} color={COLORS.error} />
-        </TouchableOpacity>
+                  <Text style={[styles.qtyText]}>{item.quantity}</Text>
+
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => onChangeQuantity(item, item.quantity + 1)}
+                    disabled={isUpdating || isAddedToPantry}
+                  >
+                    <Ionicons name="add" size={14} color={COLORS.text.primary} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.removeBtn}
+                    onPress={() => onRemove(item._id)}
+                    disabled={isUpdating}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })}
+        </View>
       </View>
     </Animated.View>
   );
@@ -434,25 +430,72 @@ export default function ShoppingCart() {
 
   const totalItems = cart.reduce((s: number, i: ShoppingListItem) => s + i.quantity, 0);
 
+  /* Unused renderItem for flat list
   const renderItem = useCallback(({ item, index }: { item: ShoppingListItem; index: number }) => {
     return (
-      <ShoppingItemRow
-        item={item}
-        index={index}
-        isAdded={addedItems.has(item._id)}
-        onToggleCheck={handleToggleCheck}
-        onChangeQuantity={handleChangeQuantity}
-        onRemove={handleRemove}
-        isUpdating={updateMutation.isPending || removeMutation.isPending}
-      />
+      <View />
     );
-  }, [addedItems, handleToggleCheck, handleChangeQuantity, handleRemove, updateMutation.isPending, removeMutation.isPending]);
+  }, []);
+  */
 
   const renderSkeletons = () => (
     <View style={styles.list}>
       {[1, 2, 3, 4, 5].map(key => <ShoppingItemSkeleton key={key} />)}
     </View>
   );
+
+  // Group items by ingredient ID
+  const groupedCart = React.useMemo(() => {
+    const groups: Record<string, { ingredientId: string; name: string; items: ShoppingListItem[]; checked: boolean }> = {};
+
+    cart.forEach((item: ShoppingListItem) => {
+      const ingId = typeof item.ingredient === 'object' ? item.ingredient._id : item.ingredient;
+      const ingName = typeof item.ingredient === 'object' ? item.ingredient.name : "Unknown Ingredient";
+
+      if (!groups[ingId]) {
+        groups[ingId] = {
+          ingredientId: ingId,
+          name: ingName,
+          items: [],
+          checked: true // Start true, if any is false -> false
+        };
+      }
+
+      groups[ingId].items.push(item);
+      if (!item.checked) groups[ingId].checked = false;
+    });
+
+    return Object.values(groups);
+  }, [cart]);
+
+  const handleToggleGroup = useCallback((items: ShoppingListItem[]) => {
+    // If all checked -> uncheck all. If any unchecked -> check all.
+    const allChecked = items.every(i => i.checked);
+    const newStatus = !allChecked;
+
+    // Optimistic / Multiple mutations
+    items.forEach(item => {
+      if (item.checked !== newStatus) {
+        updateMutation.mutate({ itemId: item._id, checked: newStatus });
+      }
+    });
+  }, [updateMutation]);
+
+  const renderGroup = useCallback(({ item }: { item: any }) => {
+    // Check if any item in this group has been added to pantry
+    const isAdded = item.items.some((i: ShoppingListItem) => addedItems.has(i._id));
+
+    return (
+      <GroupedShoppingItemRow
+        group={item}
+        onToggleCheck={handleToggleGroup}
+        onChangeQuantity={handleChangeQuantity}
+        onRemove={handleRemove}
+        isUpdating={updateMutation.isPending || removeMutation.isPending}
+        isAddedToPantry={isAdded}
+      />
+    );
+  }, [handleToggleGroup, handleChangeQuantity, handleRemove, updateMutation.isPending, removeMutation.isPending, addedItems]);
 
   return (
     <View style={styles.container}>
@@ -495,9 +538,9 @@ export default function ShoppingCart() {
         </View>
       ) : (
         <FlatList
-          data={cart}
-          keyExtractor={(i) => i._id}
-          renderItem={renderItem}
+          data={groupedCart}
+          keyExtractor={(g) => g.ingredientId}
+          renderItem={renderGroup}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         />
@@ -704,5 +747,22 @@ const styles = StyleSheet.create({
     color: COLORS.card,
     fontWeight: '700',
     fontSize: FONTS.sizes.body,
+  },
+  variantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border + '50', // light border
+    paddingTop: 8,
+  },
+  qtyText: {
+    fontSize: FONTS.sizes.body,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginHorizontal: 8,
+    minWidth: 20,
+    textAlign: 'center'
   }
 });
