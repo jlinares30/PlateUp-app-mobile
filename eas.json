@@ -16,12 +16,14 @@
       "android": {
         "buildType": "apk"
       },
+      "channel": "production",
       "env": {
         "API_URL": "https://plateup-mobile-server.onrender.com/api"
       }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "API_URL": "https://plateup-mobile-server.onrender.com/api"
       }
