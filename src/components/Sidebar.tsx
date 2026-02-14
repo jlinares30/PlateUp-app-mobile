@@ -6,14 +6,22 @@ import { COLORS, SPACING } from "../constants/theme";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuthStore } from "../store/useAuth";
 
-const MENU_ITEMS = [
+type MenuItem = {
+    icon: string;
+    label: string;
+    route: string;
+    disabled?: boolean;
+};
+
+const MENU_ITEMS: MenuItem[] = [
     { icon: "home-outline", label: "Home", route: "/" },
     { icon: "restaurant-outline", label: "Recipes", route: "/recipes" },
     { icon: "calendar-outline", label: "Meal Plans", route: "/mealplans" },
     { icon: "cart-outline", label: "Shopping List", route: "/shopping" },
     { icon: "nutrition-outline", label: "Pantry", route: "/pantry" },
     { icon: "person-outline", label: "Profile", route: "/profile" },
-] as const;
+    { icon: "calculator-outline", label: "Unit Converter", route: "/converter", disabled: true },
+];
 
 function Sidebar() {
     const router = useRouter();
@@ -56,13 +64,26 @@ function Sidebar() {
                     {MENU_ITEMS.map((item, index) => (
                         <TouchableOpacity
                             key={index}
-                            style={styles.menuItem}
+                            style={[
+                                styles.menuItem,
+                                item.disabled && { opacity: 0.5 }
+                            ]}
                             onPress={() => {
-                                handleNavigation(item.route);
+                                if (!item.disabled) {
+                                    handleNavigation(item.route);
+                                }
                             }}
+                            disabled={item.disabled}
                         >
-                            <Ionicons name={item.icon as any} size={24} color={COLORS.card} style={styles.icon} />
-                            <Text style={styles.menuLabel}>{item.label}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                <Ionicons name={item.icon as any} size={24} color={COLORS.card} style={styles.icon} />
+                                <Text style={styles.menuLabel}>{item.label}</Text>
+                                {item.disabled && (
+                                    <View style={styles.soonBadge}>
+                                        <Text style={styles.soonText}>Soon</Text>
+                                    </View>
+                                )}
+                            </View>
                         </TouchableOpacity>
                     ))}
                 </View>
@@ -72,8 +93,8 @@ function Sidebar() {
                     <Ionicons name="log-out-outline" size={24} color={COLORS.card} style={styles.icon} />
                     <Text style={styles.menuLabel}>Log Out</Text>
                 </TouchableOpacity>
-            </View>
-        </SafeAreaView>
+            </View >
+        </SafeAreaView >
     );
 }
 
@@ -125,5 +146,17 @@ const styles = StyleSheet.create({
         paddingTop: SPACING.l,
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.2)',
+    },
+    soonBadge: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        marginLeft: SPACING.s,
+    },
+    soonText: {
+        color: COLORS.card,
+        fontSize: 10,
+        fontWeight: 'bold'
     }
 });
