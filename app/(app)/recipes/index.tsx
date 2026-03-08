@@ -4,14 +4,14 @@ import { normalizeTags } from "@/src/lib/utils";
 import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { Link } from "expo-router";
+import { useState } from "react";
 import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
 import SwipeableRow from "../../../src/components/SwipeableRow";
+import { useRecipeFilters } from "../../../src/hooks/useRecipeFilters";
 import api from "../../../src/lib/api";
-
 
 
 const RecipeSkeleton = () => (
@@ -31,21 +31,10 @@ const RecipeSkeleton = () => (
 import { useOnboarding } from "@/src/hooks/useOnboarding";
 
 export default function RecipesScreen() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const showOnboarding = useOnboarding('onboarding_swipe_recipes');
-
-  const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([]);
-  const [recipeQuery, setRecipeQuery] = useState<string>("");
+  const { selectedIngredients, recipeQuery, debouncedRecipeQuery, setRecipeQuery, addIngredient, removeIngredient } = useRecipeFilters();
   const [ingredientQuery, setIngredientQuery] = useState<string>("");
-  const [debouncedRecipeQuery, setDebouncedRecipeQuery] = useState<string>("");
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedRecipeQuery(recipeQuery);
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [recipeQuery]);
 
   // 1. Fetch Items query
   const { data: allIngredients = [] } = useQuery({
@@ -165,17 +154,6 @@ export default function RecipesScreen() {
 
 
   // Helpers
-  const addIngredient = (ingredient: Ingredient) => {
-    if (!selectedIngredients.some((i) => i._id === ingredient._id)) {
-      setSelectedIngredients([...selectedIngredients, ingredient]);
-    }
-    setIngredientQuery("");
-  };
-
-  const removeIngredient = (id: string) => {
-    setSelectedIngredients(selectedIngredients.filter((i) => i._id !== id));
-  };
-
   const handleSwipeRecipe = (item: Recipe) => {
     addAllMutation.mutate(item);
   };
