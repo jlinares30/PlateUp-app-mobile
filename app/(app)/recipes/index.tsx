@@ -1,9 +1,11 @@
 import Skeleton from "@/src/components/Skeleton";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useRecipeQueries } from "@/src/hooks/useRecipeQueries";
 import { normalizeTags } from "@/src/lib/utils";
 import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -12,7 +14,6 @@ import Toast from 'react-native-toast-message';
 import SwipeableRow from "../../../src/components/SwipeableRow";
 import { useRecipeFilters } from "../../../src/hooks/useRecipeFilters";
 import api from "../../../src/lib/api";
-
 
 const RecipeSkeleton = () => (
   <View style={[styles.recipeCard, { marginBottom: SPACING.m }]}>
@@ -28,69 +29,20 @@ const RecipeSkeleton = () => (
   </View>
 );
 
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+
 
 export default function RecipesScreen() {
   const queryClient = useQueryClient();
   const showOnboarding = useOnboarding('onboarding_swipe_recipes');
   const { selectedIngredients, recipeQuery, debouncedRecipeQuery, setRecipeQuery, addIngredient, removeIngredient } = useRecipeFilters();
+  const { recipesQuery: recipes, ingredientsQuery: allIngredients, isLoading, isRefetching, refetch, error } = useRecipeQueries(debouncedRecipeQuery, selectedIngredients);
   const [ingredientQuery, setIngredientQuery] = useState<string>("");
 
-  // 1. Fetch Items query
-  const { data: allIngredients = [] } = useQuery({
-    queryKey: ['ingredients'],
-    queryFn: async () => {
-      const res = await api.get("/ingredients");
-      const data = res.data?.data ?? res.data;
-      return Array.isArray(data) ? data : [];
-    },
-    staleTime: 1000 * 60 * 60 // 1 hour cache for simple list
-  });
 
   // 2. Filter ingredients for suggestion box
   const filteredIngredients = ingredientQuery.trim()
     ? allIngredients.filter((i: Ingredient) => i.name.toLowerCase().includes(ingredientQuery.toLowerCase())).slice(0, 6)
     : [];
-
-  // 3. Main Recipe Query
-  const {
-    data: recipes = [],
-    isLoading,
-    isRefetching,
-    refetch,
-    error
-  } = useQuery({
-    queryKey: ['recipes', selectedIngredients.map(i => i._id).sort().join(','), debouncedRecipeQuery],
-    queryFn: async () => {
-      let data: Recipe[] = [];
-
-      if (selectedIngredients.length > 0) {
-        // Fetch by ingredients
-        const res = await api.post("/recipes/by-ingredients", {
-          ingredientIds: selectedIngredients.map(i => i._id),
-        });
-        data = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
-
-        // Client-side text filter
-        if (debouncedRecipeQuery.trim()) {
-          const lowerQ = debouncedRecipeQuery.toLowerCase();
-          data = data.filter(r => r.title.toLowerCase().includes(lowerQ));
-        }
-
-        // Sort by match
-        data.sort((a, b) => (b.matchPercentage ?? 0) - (a.matchPercentage ?? 0));
-
-      } else {
-        // Normal fetch
-        const params = debouncedRecipeQuery.trim() ? { query: debouncedRecipeQuery.trim() } : {};
-        const res = await api.get("/recipes", { params });
-        data = res.data?.data ?? res.data;
-        if (!Array.isArray(data)) data = [];
-      }
-      return data;
-    },
-    staleTime: 1000 * 60 * 5 // 5 minutes cache
-  });
 
   // 4. Mutation to add to shopping list
   const addAllMutation = useMutation({
