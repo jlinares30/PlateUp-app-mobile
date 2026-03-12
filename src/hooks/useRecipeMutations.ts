@@ -64,6 +64,6 @@ export const useRecipeMutations = () => {
   });
 
   return {
-    addAllMutation: addAllMutation.data
+    addAllMutation: addAllMutation
   }
 }

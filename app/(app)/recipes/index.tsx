@@ -106,7 +106,7 @@ export default function RecipesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Recipes</Text>
+        <Text style={styles.headerTitle}>Recipe List</Text>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <Link href="/recipes/my-recipes" asChild>
             <TouchableOpacity style={styles.backButton}>
@@ -123,7 +123,6 @@ export default function RecipesScreen() {
       <View style={styles.content}>
         <View style={styles.ingredientSelector}>
           <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
-
           <View style={styles.searchWrapper}>
             <TextInput
               value={ingredientQuery}
