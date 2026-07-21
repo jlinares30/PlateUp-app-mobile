@@ -5,7 +5,7 @@ export default {
     slug: "plateup",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/adaptive-icon.png",
     scheme: "plateup",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -18,7 +18,7 @@ export default {
     splash: {
       image: "./assets/images/adaptive-icon.png",
       resizeMode: "contain",
-      backgroundColor: "#302783"
+      backgroundColor: "#ffffff"
     },
     ios: {
       supportsTablet: true
@@ -27,7 +27,7 @@ export default {
       package: "com.jorge.plateup",
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#ffffff"
+        backgroundColor: "#302783"
       },
       permissions: ["android.permission.RECORD_AUDIO"],
       usesCleartextTraffic: true

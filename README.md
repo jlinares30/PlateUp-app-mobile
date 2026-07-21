@@ -96,20 +96,45 @@ npm run dev
 Navigate to the frontend directory:
 ```bash
 cd frontend/app-mobile-prototype-react-native
-npm install
+pnpm install
 ```
 
-Create a `.env` file (if needed by your config, usually EXPO public vars):
-```env
-EXPO_PUBLIC_API_URL_DEV=http://localhost:3000/api
-EXPO_PUBLIC_API_URL_PROD=https://your-prod-api.com/api
-```
+---
 
-Start the Expo app:
+## 💻 Comandos de Desarrollo y Producción (Expo & EAS)
+
+### 🛠️ Modo Desarrollo
+Para iniciar el servidor de desarrollo y abrir en emuladores o dispositivos físicos usando `pnpm`:
+
 ```bash
-npx expo start
+# Iniciar servidor Expo (mostrar QR para Expo Go)
+pnpm start
+
+# Abrir directamente en Emulador Android (requiere Android Studio y emulador encendido)
+pnpm android
+
+# Limpiar caché e iniciar con Expo
+pnpm dlx expo start -c
 ```
-*Press `a` for Android Emulator, `i` for iOS Simulator, or scan the QR code with Expo Go.*
+
+### 📱 Compilación del APK (EAS Build)
+Para generar un instalable **.apk** directo para Android:
+
+```bash
+# Compilar APK con el perfil Preview (Genera el APK en los servidores de Expo)
+npx eas build -p android --profile preview
+
+# Compilar un App Bundle (.aab) para subir a la Play Store
+npx eas build -p android --profile production
+```
+
+### 🚀 Actualizaciones en Tiempo Real OTA (Over-The-Air)
+Para enviar actualizaciones de código JS/TS, imágenes o pantallas sin necesidad de volver a compilar el APK:
+
+```bash
+# Publicar actualización al canal de producción
+npx eas update --branch production --message "Descripción de la actualización"
+```
 
 ---
 
