@@ -7,7 +7,7 @@ import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, FlatList, Image, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import SwipeableRow from "../../../src/components/SwipeableRow";
@@ -28,22 +28,26 @@ const RecipeSkeleton = () => (
   </View>
 );
 
-
 export default function RecipesScreen() {
-  
   const showOnboarding = useOnboarding('onboarding_swipe_recipes');
   const { selectedIngredients, recipeQuery, debouncedRecipeQuery, setRecipeQuery, addIngredient, removeIngredient } = useRecipeFilters();
-  const { recipesQuery: recipes, ingredientsQuery: allIngredients, isLoading, isRefetching, refetch, error } = useRecipeQueries(debouncedRecipeQuery, selectedIngredients);
+  const { recipesQuery: recipes, ingredientsQuery: allIngredients, isLoading, isRefetching, refetch } = useRecipeQueries(debouncedRecipeQuery, selectedIngredients);
   const { addAllMutation } = useRecipeMutations();
   const [ingredientQuery, setIngredientQuery] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
+  const CATEGORIES = ["All", "Breakfast", "Lunch", "Dinner", "Snack", "Dessert", "Drink"];
 
-  //Filter ingredients for suggestion box
   const filteredIngredients = ingredientQuery.trim()
     ? allIngredients.filter((i: Ingredient) => i.name.toLowerCase().includes(ingredientQuery.toLowerCase())).slice(0, 6)
     : [];
 
-  // Helpers
+  const filteredRecipes = (recipes || []).filter((recipe: Recipe) => {
+    if (selectedCategory === "All") return true;
+    if (!recipe.category) return false;
+    return recipe.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase();
+  });
+
   const handleSwipeRecipe = (item: Recipe) => {
     addAllMutation.mutate(item);
   };
@@ -72,7 +76,6 @@ export default function RecipesScreen() {
               </View>
               <Text style={styles.recipeDescription} numberOfLines={2}>{item.description}</Text>
 
-              {/* Tags Preview */}
               {item.tags && item.tags.length > 0 && (
                 <View style={styles.tagsRow}>
                   {normalizeTags(item.tags).slice(0, 3).map((tag, idx) => (
@@ -138,7 +141,6 @@ export default function RecipesScreen() {
             )}
           </View>
 
-          {/* Suggestions */}
           {filteredIngredients.length > 0 && (
             <View style={styles.suggestions}>
               {filteredIngredients.map((item: Ingredient) => (
@@ -153,8 +155,6 @@ export default function RecipesScreen() {
               ))}
             </View>
           )}
-
-          {/* Selected Ingredients */}
           <View style={styles.selectedContainer}>
             {selectedIngredients.map((item) => (
               <TouchableOpacity
@@ -183,11 +183,38 @@ export default function RecipesScreen() {
           {isLoading && recipes.length > 0 && <ActivityIndicator size="small" color={COLORS.primary} />}
         </View>
 
+        <View style={{ marginBottom: SPACING.m }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingRight: SPACING.m }}
+          >
+            {CATEGORIES.map((item) => {
+              const isActive = selectedCategory === item;
+              return (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => setSelectedCategory(item)}
+                  style={[
+                    styles.categoryChip,
+                    isActive && styles.categoryChipActive,
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
         {isLoading && recipes.length === 0 ? (
           renderSkeletons()
         ) : (
           <FlatList
-            data={recipes}
+            data={filteredRecipes}
             keyExtractor={(item) => item._id}
             renderItem={renderRecipeItem}
             showsVerticalScrollIndicator={false}
@@ -196,7 +223,7 @@ export default function RecipesScreen() {
             ListEmptyComponent={
               !isLoading ? (
                 <View style={styles.center}>
-                  <Text style={styles.emptyText}>No recipes found.</Text>
+                  <Text style={styles.emptyText}>No recipes found for this category.</Text>
                 </View>
               ) : null
             }
@@ -292,7 +319,7 @@ const styles = StyleSheet.create({
     gap: SPACING.s,
   },
   chip: {
-    backgroundColor: COLORS.primary + '15', // 15% opacity
+    backgroundColor: COLORS.primary + '15',
     borderRadius: SPACING.l,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -321,10 +348,10 @@ const styles = StyleSheet.create({
   categoryChip: {
     paddingVertical: SPACING.s,
     paddingHorizontal: SPACING.m,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.card,
     borderRadius: SPACING.xl,
     marginRight: SPACING.s,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
   },
   categoryChipActive: {
@@ -333,15 +360,14 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: FONTS.sizes.small,
-    color: COLORS.text.secondary,
+    color: COLORS.text.primary,
     fontWeight: "600",
   },
   categoryTextActive: {
-    color: COLORS.card,
+    color: "#ffffff",
+    fontWeight: "700",
   },
   listContainer: {
-    padding: SPACING.l,
-    paddingTop: SPACING.l,
     paddingBottom: 100,
   },
   recipeCard: {
