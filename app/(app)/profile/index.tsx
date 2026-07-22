@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     },
     saveFab: {
         position: 'absolute',
-        bottom: SPACING.l,
+        bottom: 50,
         right: SPACING.l,
         backgroundColor: COLORS.accent, // Green for save
         width: 56,

@@ -35,8 +35,12 @@ export default function RecipesScreen() {
   const { addAllMutation } = useRecipeMutations();
   const [ingredientQuery, setIngredientQuery] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [showFilters, setShowFilters] = useState<boolean>(false);
 
   const CATEGORIES = ["All", "Breakfast", "Lunch", "Dinner", "Snack", "Dessert", "Drink"];
+
+  // Total active filters count for badge
+  const activeFiltersCount = (selectedCategory !== "All" ? 1 : 0) + selectedIngredients.length + (recipeQuery ? 1 : 0);
 
   const filteredIngredients = ingredientQuery.trim()
     ? allIngredients.filter((i: Ingredient) => i.name.toLowerCase().includes(ingredientQuery.toLowerCase())).slice(0, 6)
@@ -110,7 +114,24 @@ export default function RecipesScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Recipe List</Text>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {/* Toggle Filters Button */}
+          <TouchableOpacity
+            style={[styles.filterToggleBtn, showFilters && styles.filterToggleBtnActive]}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons
+              name={showFilters ? "options" : "options-outline"}
+              size={22}
+              color={showFilters ? COLORS.card : COLORS.text.primary}
+            />
+            {activeFiltersCount > 0 && !showFilters && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <Link href="/recipes/my-recipes" asChild>
             <TouchableOpacity style={styles.backButton}>
               <Ionicons name="bookmarks-outline" size={24} color={COLORS.text.primary} />
@@ -124,91 +145,96 @@ export default function RecipesScreen() {
         </View>
       </View>
       <View style={styles.content}>
-        <View style={styles.ingredientSelector}>
-          <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
-          <View style={styles.searchWrapper}>
-            <TextInput
-              value={ingredientQuery}
-              onChangeText={setIngredientQuery}
-              placeholder="Type an ingredient..."
-              style={styles.input}
-              placeholderTextColor={COLORS.text.light}
-            />
-            {ingredientQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setIngredientQuery('')} style={{ padding: 4 }}>
-                <Ionicons name="close-circle" size={20} color={COLORS.text.light} />
-              </TouchableOpacity>
-            )}
-          </View>
+        {/* Collapsible Filters Panel */}
+        {showFilters && (
+          <Animated.View entering={FadeInDown.duration(250)}>
+            <View style={styles.ingredientSelector}>
+              <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
+              <View style={styles.searchWrapper}>
+                <TextInput
+                  value={ingredientQuery}
+                  onChangeText={setIngredientQuery}
+                  placeholder="Type an ingredient..."
+                  style={styles.input}
+                  placeholderTextColor={COLORS.text.light}
+                />
+                {ingredientQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setIngredientQuery('')} style={{ padding: 4 }}>
+                    <Ionicons name="close-circle" size={20} color={COLORS.text.light} />
+                  </TouchableOpacity>
+                )}
+              </View>
 
-          {filteredIngredients.length > 0 && (
-            <View style={styles.suggestions}>
-              {filteredIngredients.map((item: Ingredient) => (
-                <TouchableOpacity
-                  key={item._id}
-                  onPress={() => addIngredient(item)}
-                  style={styles.suggestionItem}
-                >
-                  <Text style={styles.suggestionText}>{item.name}</Text>
-                  <Text style={styles.category}>{item.category ?? "—"}</Text>
-                </TouchableOpacity>
-              ))}
+              {filteredIngredients.length > 0 && (
+                <View style={styles.suggestions}>
+                  {filteredIngredients.map((item: Ingredient) => (
+                    <TouchableOpacity
+                      key={item._id}
+                      onPress={() => addIngredient(item)}
+                      style={styles.suggestionItem}
+                    >
+                      <Text style={styles.suggestionText}>{item.name}</Text>
+                      <Text style={styles.category}>{item.category ?? "—"}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              <View style={styles.selectedContainer}>
+                {selectedIngredients.map((item) => (
+                  <TouchableOpacity
+                    key={item._id}
+                    style={styles.chip}
+                    onPress={() => removeIngredient(item._id)}
+                  >
+                    <Text style={styles.chipText}>{item.name}</Text>
+                    <Ionicons name="close-circle" size={16} color={COLORS.primary} style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          )}
-          <View style={styles.selectedContainer}>
-            {selectedIngredients.map((item) => (
-              <TouchableOpacity
-                key={item._id}
-                style={styles.chip}
-                onPress={() => removeIngredient(item._id)}
+
+            <View style={styles.mainSearch}>
+              <Ionicons name="search" size={20} color={COLORS.text.light} style={{ marginRight: 8 }} />
+              <TextInput
+                placeholder="Search recipe title..."
+                value={recipeQuery}
+                onChangeText={setRecipeQuery}
+                style={styles.searchInput}
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+                placeholderTextColor={COLORS.text.light}
+              />
+              {isLoading && recipes.length > 0 && <ActivityIndicator size="small" color={COLORS.primary} />}
+            </View>
+
+            <View style={{ marginBottom: SPACING.m }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: SPACING.m }}
               >
-                <Text style={styles.chipText}>{item.name}</Text>
-                <Ionicons name="close-circle" size={16} color={COLORS.primary} style={{ marginLeft: 4 }} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.mainSearch}>
-          <Ionicons name="search" size={20} color={COLORS.text.light} style={{ marginRight: 8 }} />
-          <TextInput
-            placeholder="Search recipe title..."
-            value={recipeQuery}
-            onChangeText={setRecipeQuery}
-            style={styles.searchInput}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            placeholderTextColor={COLORS.text.light}
-          />
-          {isLoading && recipes.length > 0 && <ActivityIndicator size="small" color={COLORS.primary} />}
-        </View>
-
-        <View style={{ marginBottom: SPACING.m }}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: SPACING.m }}
-          >
-            {CATEGORIES.map((item) => {
-              const isActive = selectedCategory === item;
-              return (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => setSelectedCategory(item)}
-                  style={[
-                    styles.categoryChip,
-                    isActive && styles.categoryChipActive,
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+                {CATEGORIES.map((item) => {
+                  const isActive = selectedCategory === item;
+                  return (
+                    <TouchableOpacity
+                      key={item}
+                      onPress={() => setSelectedCategory(item)}
+                      style={[
+                        styles.categoryChip,
+                        isActive && styles.categoryChipActive,
+                      ]}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </Animated.View>
+        )}
 
         {isLoading && recipes.length === 0 ? (
           renderSkeletons()
@@ -252,6 +278,35 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: SPACING.xs,
+  },
+  filterToggleBtn: {
+    padding: SPACING.xs + 2,
+    borderRadius: SPACING.s,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterToggleBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   headerTitle: {
     fontSize: FONTS.sizes.h3,

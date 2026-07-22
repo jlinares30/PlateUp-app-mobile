@@ -1,11 +1,11 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/src/lib/api";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -15,14 +15,14 @@ import {
   View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { useAuthStore } from "../../src/store/useAuth.js";
 
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { login, error, loading } = useAuthStore();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({ email: "", password: "" });
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({ email: "", newPassword: "", confirmPassword: "" });
 
   const validate = (field: string, value: string) => {
     let newErrors = { ...errors };
@@ -30,42 +30,57 @@ export default function LoginScreen() {
     if (field === "email") {
       newErrors.email = value.trim() ? "" : "Email is required";
     }
-    if (field === "password") {
-      newErrors.password = value ? "" : "Password is required";
+    if (field === "newPassword") {
+      newErrors.newPassword = value.length >= 6 ? "" : "Password must be at least 6 characters";
+      if (confirmPassword && value !== confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      } else if (confirmPassword) {
+        newErrors.confirmPassword = "";
+      }
+    }
+    if (field === "confirmPassword") {
+      newErrors.confirmPassword = value === newPassword ? "" : "Passwords do not match";
     }
 
     setErrors(newErrors);
   };
-  useEffect(() => {
-    const checkStorage = async () => {
-      try {
-        const keys = await AsyncStorage.getAllKeys();
-        console.log("📦 AsyncStorage keys:", keys);
 
-        const authData = await AsyncStorage.getItem('auth-storage');
-        console.log("📦 Auth data:", authData);
-      } catch (error) {
-        console.error("Error reading storage:", error);
-      }
-    };
+  const handleResetPassword = async () => {
+    if (!email || !newPassword || !confirmPassword) return;
 
-    checkStorage();
-  }, []);
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
 
-  const handleLogin = async () => {
-    if (!email || !password) return;
+    setLoading(true);
+    try {
+      await api.post("/auth/reset-password", {
+        email: email.trim(),
+        newPassword,
+      });
 
-    const success = await login(email, password);
-    console.log(email, password);
-    if (success) {
-      router.replace("/(app)");
-      console.log("Login successful");
-    } else {
-      Alert.alert("Login Failed", "Invalid credentials");
+      Alert.alert("Success", "Password reset successfully! Please log in with your new password.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/(auth)/login"),
+        },
+      ]);
+    } catch (error: any) {
+      const message = error.response?.data?.message || "Could not reset password. Please check your email.";
+      Alert.alert("Reset Failed", message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isFormValid = email && password && !errors.email && !errors.password;
+  const isFormValid =
+    email &&
+    newPassword &&
+    confirmPassword &&
+    !errors.email &&
+    !errors.newPassword &&
+    !errors.confirmPassword;
 
   return (
     <View style={styles.container}>
@@ -74,13 +89,14 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.card}>
+          {/* Back Button */}
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+          </TouchableOpacity>
+
           <View style={styles.headerContainer}>
-            <Image
-              source={require("@/assets/images/logo_plateup-removebg.png")}
-              style={{ width: 150, height: 150, resizeMode: 'contain', marginBottom: SPACING.s }}
-            />
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue your healthy journey</Text>
+            <Text style={styles.title}>Forgot Password?</Text>
+            <Text style={styles.subtitle}>Enter your email address and your new password to reset it.</Text>
           </View>
 
           <View style={styles.form}>
@@ -102,45 +118,49 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <View style={styles.passwordHeader}>
-                <Text style={styles.label}>Password</Text>
-              </View>
+              <Text style={styles.label}>New Password</Text>
               <TextInput
                 placeholder="••••••••"
                 placeholderTextColor={COLORS.text.light}
                 secureTextEntry
-                style={[styles.input, errors.password ? styles.inputError : null]}
-                value={password}
+                style={[styles.input, errors.newPassword ? styles.inputError : null]}
+                value={newPassword}
                 onChangeText={(text) => {
-                  setPassword(text);
-                  validate("password", text);
+                  setNewPassword(text);
+                  validate("newPassword", text);
                 }}
               />
-              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-              <TouchableOpacity onPress={() => router.push("./forgot-password")}>
-                <Text style={styles.forgotLink}>Forgot Password?</Text>
-              </TouchableOpacity>
+              {errors.newPassword ? <Text style={styles.errorText}>{errors.newPassword}</Text> : null}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm New Password</Text>
+              <TextInput
+                placeholder="••••••••"
+                placeholderTextColor={COLORS.text.light}
+                secureTextEntry
+                style={[styles.input, errors.confirmPassword ? styles.inputError : null]}
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  validate("confirmPassword", text);
+                }}
+              />
+              {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
             </View>
 
             <TouchableOpacity
               style={[styles.button, (!isFormValid || loading) && styles.buttonDisabled]}
-              onPress={handleLogin}
+              onPress={handleResetPassword}
               disabled={!isFormValid || loading}
               activeOpacity={0.8}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Log In</Text>
+                <Text style={styles.buttonText}>Reset Password</Text>
               )}
             </TouchableOpacity>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => router.replace("./register")}>
-                <Text style={styles.link}>Sign Up</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -164,6 +184,9 @@ const styles = StyleSheet.create({
     padding: SPACING.l,
     ...SHADOWS.large,
   },
+  backButton: {
+    marginBottom: SPACING.m,
+  },
   headerContainer: {
     alignItems: "center",
     marginBottom: SPACING.xl,
@@ -172,7 +195,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.h1,
     fontWeight: "800",
     color: COLORS.text.primary,
-    marginTop: SPACING.m,
     marginBottom: SPACING.xs,
   },
   subtitle: {
@@ -213,40 +235,16 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.h3,
     fontWeight: "700",
   },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: SPACING.l,
-  },
-  footerText: {
-    color: COLORS.text.secondary,
-    fontSize: FONTS.sizes.body,
-  },
-  link: {
-    color: COLORS.primary,
-    fontWeight: "700",
-    fontSize: FONTS.sizes.body,
-  },
   inputError: {
-    borderColor: '#ef4444',
+    borderColor: "#ef4444",
   },
   errorText: {
-    color: '#ef4444',
+    color: "#ef4444",
     fontSize: FONTS.sizes.small,
-    marginTop: 2
-  },
-  passwordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  forgotLink: {
-    color: COLORS.primary,
-    fontSize: FONTS.sizes.small,
-    fontWeight: '600',
+    marginTop: 2,
   },
   buttonDisabled: {
     opacity: 0.5,
-    backgroundColor: '#ccc'
-  }
+    backgroundColor: "#ccc",
+  },
 });

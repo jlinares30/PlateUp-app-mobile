@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     },
     addButton: {
         position: 'absolute',
-        bottom: SPACING.l,
+        bottom: 50,
         right: SPACING.l,
         backgroundColor: COLORS.primary,
         width: 56,
