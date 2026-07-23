@@ -6,7 +6,7 @@ const getApiUrl = () => {
 
     if (__DEV__) {
         // Ip local para cuando se pruebe con el celular físico
-        return 'http://192.168.1.33:5001/api';
+        return 'http://192.168.1.37:5001/api';
     }
 
     // En producción (EAS), usará la variable que se definirá en app.json

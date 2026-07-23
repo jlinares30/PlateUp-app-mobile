@@ -5,7 +5,7 @@ export default {
     slug: "plateup",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/adaptive-icon.png",
+    icon: "./assets/images/logo_main.png",
     scheme: "plateup",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -16,7 +16,7 @@ export default {
       policy: "appVersion"
     },
     splash: {
-      image: "./assets/images/adaptive-icon.png",
+      image: "./assets/images/logo_main.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
@@ -26,15 +26,15 @@ export default {
     android: {
       package: "com.jorge.plateup",
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
-        backgroundColor: "#302783"
+        foregroundImage: "./assets/images/logo_main.png",
+        backgroundColor: "#ffffff"
       },
       permissions: ["android.permission.RECORD_AUDIO"],
       usesCleartextTraffic: true
     },
     plugins: [
       "expo-router",
-      ["expo-splash-screen", { "backgroundColor": "#302783", "image": "./assets/images/adaptive-icon.png", "resizeMode": "contain" }],
+      ["expo-splash-screen", { "backgroundColor": "#ffffff", "image": "./assets/images/adaptive-icon.png", "resizeMode": "contain" }],
       ["expo-image-picker", { "photosPermission": "The app needs access to your photos..." }]
     ],
     extra: {
