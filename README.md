@@ -1,10 +1,10 @@
-# 🍽️ PlateUp - Nutrition & Meal Planning App
+# PlateUp - Nutrition & Meal Planning App
 
 A full-stack mobile application designed to help users plan meals, manage recipes, and track their nutrition journey. Built with **React Native (Expo)** and **Node.js**.
 
 ---
 
-## 🚀 Overview
+## Overview
 
 **PlateUp** solves the problem of disorganized meal planning. It allows users to:
 - Browse, create, and manage their own recipes.
@@ -17,32 +17,33 @@ This project demonstrates proficiency in **full-stack mobile development**, **st
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🔐 Authentication & Security
+### Authentication & Security
 - **Secure Login/Register**: JWT-based authentication with encrypted passwords (bcrypt).
+- **Password Reset**: Forgot password flow for account recovery.
 - **Email Verification**: Custom backend validation ensuring email domain existence via DNS MX records.
 - **Profile Management**: Update user details and upload profile pictures.
 
-### 🥗 Recipe Management
+### Recipe Management
 - **CRUD Operations**: Create, read, update, and delete recipes.
 - **Image Upload**: Seamless image uploading using camera/gallery integration and **Cloudinary** storage.
 - **Rich Details**: Support for ingredients, step-by-step instructions, preparation time, and difficulty levels.
 - **Favorites**: Save best-loved recipes for quick access.
 
-### 📅 Meal Planning
+### Meal Planning
 - **Weekly Planner**: Organize breakfast, lunch, dinner, and snacks for each day.
 - **Flexible Management**: Create public or private meal plans.
 
-### 🛒 Shopping & Pantry
+### Shopping & Pantry
 - **Smart Shopping List**: Add ingredients directly from recipes.
 - **Pantry Tracker**: Keep track of what you already have at home.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-### 📱 Frontend (Mobile)
+### Frontend (Mobile)
 - **Framework**: [React Native](https://reactnative.dev/) with [Expo](https://expo.dev/) (Managed Workflow)
 - **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (File-based routing)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
@@ -52,9 +53,9 @@ This project demonstrates proficiency in **full-stack mobile development**, **st
 - **Animations**: [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)
 - **UI Components**: lucide-react-native (Icons), RefreshControl, FlatLists.
 
-### 🔙 Backend (API)
+### Backend (API)
 - **Runtime**: [Node.js](https://nodejs.org/)
-- **Framework**: [Express.js](https://expressjs.com/)
+- **Framework**: [Express.js](https://expressjs.com/) & [NestJS](https://nestjs.com/)
 - **Database**: [MongoDB](https://www.mongodb.com/)
 - **Image Storage**: [Cloudinary](https://cloudinary.com/)
 - **Authentication**: JWT (JSON Web Tokens)
@@ -62,11 +63,11 @@ This project demonstrates proficiency in **full-stack mobile development**, **st
 
 ---
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 - Node.js (v18+)
-- npm or yarn
+- pnpm or npm
 - MongoDB Instance (Local or Atlas)
 - Cloudinary Account (for images)
 
@@ -101,49 +102,56 @@ pnpm install
 
 ---
 
-## 💻 Comandos de Desarrollo y Producción (Expo & EAS)
+## Development & Production Commands (Expo & EAS)
 
-### 🛠️ Modo Desarrollo
-Para iniciar el servidor de desarrollo y abrir en emuladores o dispositivos físicos usando `pnpm`:
+### Development Mode
+To start the Expo development server and run the project using `pnpm`:
 
 ```bash
-# Iniciar servidor Expo (mostrar QR para Expo Go)
+# Start Expo development server (displays QR code for Expo Go)
 pnpm start
 
-# Abrir directamente en Emulador Android (requiere Android Studio y emulador encendido)
+# Run directly on Android Emulator
 pnpm android
 
-# Limpiar caché e iniciar con Expo
+# Clear cache and start Expo
 pnpm dlx expo start -c
 ```
 
-### 📱 Compilación del APK (EAS Build)
-Para generar un instalable **.apk** directo para Android:
+### APK & Build Generation (EAS Build)
+To generate an installable **.apk** file for Android or an **.aab** bundle for Google Play Store:
 
 ```bash
-# Compilar APK con el perfil Preview (Genera el APK en los servidores de Expo)
-npx eas build -p android --profile preview
+# Build APK with Preview profile (Generates APK via Expo Cloud Services)
+pnpm dlx eas-cli build -p android --profile preview
 
-# Compilar un App Bundle (.aab) para subir a la Play Store
-npx eas build -p android --profile production
+# Build App Bundle (.aab) for Google Play Store deployment
+pnpm dlx eas-cli build -p android --profile production
 ```
 
-### 🚀 Actualizaciones en Tiempo Real OTA (Over-The-Air)
-Para enviar actualizaciones de código JS/TS, imágenes o pantallas sin necesidad de volver a compilar el APK:
+### Live Over-The-Air (OTA) Updates
+
+#### Option 1: Manual (via `pnpm`)
+To publish JS/TS code updates, screens, components, or assets directly to installed apps:
 
 ```bash
-# Publicar actualización al canal de producción
-npx eas update --branch production --message "Descripción de la actualización"
+pnpm dlx eas-cli update --branch production --message "Description of changes"
 ```
+
+#### Option 2: Automatic via GitHub Actions (Recommended)
+The repository includes an automated CI/CD workflow configured in `.github/workflows/eas-update.yml`.
+
+- **How it works**: Every time a `git push` or `merge` to the `main` branch occurs, GitHub Actions automatically builds the bundle and publishes the OTA update using the commit/merge message as the update description.
+- **Prerequisite**: Set the `EXPO_TOKEN` repository secret in GitHub (**Settings** > **Secrets and variables** > **Actions**).
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 ├── app/                  # Frontend Screens & Routing (Expo Router)
 │   ├── (app)/            # Authenticated Routes (Tabs, Stacks)
-│   ├── (auth)/           # Authentication Routes (Login, Register)
+│   ├── (auth)/           # Authentication Routes (Login, Register, Forgot Password)
 │   ├── _layout.tsx       # Root Layout
 ├── src/
 │   ├── components/       # Reusable UI Components (Cards, Modals)
@@ -152,24 +160,22 @@ npx eas update --branch production --message "Descripción de la actualización"
 │   ├── store/            # Zustand Stores (Auth, etc.)
 │   ├── types/            # TypeScript Interfaces
 ├── backend/
-│   ├── controllers/      # Logic for API endpoints
-│   ├── models/           # Mongoose Data Schemas
-│   ├── routes/           # API Route Definitions
+│   ├── src/              # NestJS Controllers, Modules & Services
 │   ├── config/           # Database & Cloudinary Config
 ```
 
 ---
 
-## � Security & Session Management
+## Security & Session Management
 
-### 🔒 Session Management & Persistence (Android)
-During the development of PlateUp, an unexpected behavior was identified where the user session persisted even after clearing the cache or reinstalling the application. This issue was resolved through advanced persistence configuration and Android security policies.
+### Session Management & Persistence (Android)
+During development, an unexpected behavior was identified where the user session persisted even after clearing the cache or reinstalling the application. This issue was resolved through persistence configuration and Android security policies.
 
-#### 🛠️ Problem: "Phantom" Persistence
-Due to Google's Auto Backup feature, data stored in AsyncStorage (managed by Zustand's persist middleware) was automatically backed up to the cloud. This caused the system to restore the old authentication token upon reinstalling the APK, allowing access to the Dashboard without a prior login.
+#### Problem: "Phantom" Persistence
+Due to Google's Auto Backup feature, data stored in AsyncStorage (managed by Zustand's persist middleware) was automatically backed up to the cloud. This caused the system to restore the old authentication token upon reinstalling the APK, allowing access to the Dashboard without prior authentication.
 
-#### ✅ Implemented Solution
-1. **Disable Auto Backup**: The application manifest was configured to prevent saving sensitive data in backups not encrypted by the developer.
+#### Implemented Solution
+1. **Disable Auto Backup**: The application manifest was configured to prevent saving sensitive data in unencrypted backups.
 
 ```json
 // app.json
@@ -178,13 +184,13 @@ Due to Google's Auto Backup feature, data stored in AsyncStorage (managed by Zus
 }
 ```
 
-2. **Hydration & State Validation**: A "Hydration Guard" was implemented in the root component (RootLayout) using Zustand's `onRehydrateStorage`. This ensures that redirect logic only executes once the app has confirmed the integrity of local data.
+2. **Hydration & State Validation**: A "Hydration Guard" was implemented in the root layout using Zustand's `onRehydrateStorage`. This ensures that redirect logic only executes once local data integrity is verified.
 
-3. **Backend Synchronization**: A response interceptor was added in Axios to handle 401 Unauthorized errors. If the server rejects the token (due to expiration or invalidity), the app automatically executes a `logout()` to clear local state and redirect the user to the login screen.
+3. **Backend Synchronization**: A response interceptor was added in Axios to handle 401 Unauthorized errors. If the server rejects the token, the app automatically triggers a `logout()` to clear local state and redirect the user to the login screen.
 
 ---
 
-## �💡 Future Improvements
+## Future Improvements
 - [ ] **Social Sharing**: Share meal plans with friends.
 - [ ] **Nutritional Analysis**: Auto-calculate calories and macros based on ingredients.
 - [ ] **Offline Mode**: Cache recipes for offline access.
@@ -192,5 +198,5 @@ Due to Google's Auto Backup feature, data stored in AsyncStorage (managed by Zus
 
 ---
 
-## 👤 Author
+## Author
 Developed by **Jorge Linares**.
