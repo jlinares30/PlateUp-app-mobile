@@ -1,4 +1,5 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { useTranslation } from "@/src/lib/i18n";
 import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -17,6 +18,7 @@ import api from "../../../src/lib/api";
 export default function IngredientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, language } = useTranslation();
 
   const [ingredient, setIngredient] = useState<Ingredient | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -31,7 +33,7 @@ export default function IngredientDetail() {
       setIngredient(data ?? null);
     } catch (err: any) {
       console.error("fetchIngredient:", err);
-      setError(err?.response?.data?.message ?? err.message ?? "Error loading ingredient");
+      setError(err?.response?.data?.message ?? err.message ?? (language === 'es' ? 'Error al cargar ingrediente' : 'Error loading ingredient'));
     } finally {
       setLoading(false);
     }
@@ -52,9 +54,9 @@ export default function IngredientDetail() {
   if (error || !ingredient) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{error || "Ingredient not found"}</Text>
+        <Text style={styles.error}>{error || (language === 'es' ? 'Ingrediente no encontrado' : 'Ingredient not found')}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => router.back()}>
-          <Text style={styles.retryText}>Go Back</Text>
+          <Text style={styles.retryText}>{language === 'es' ? 'Volver' : 'Go Back'}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -74,7 +76,9 @@ export default function IngredientDetail() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Ingredient Details</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {language === 'es' ? 'Detalle del Ingrediente' : 'Ingredient Details'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -108,28 +112,30 @@ export default function IngredientDetail() {
 
         {/* Nutrition Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nutrition (per 100g)</Text>
+          <Text style={styles.sectionTitle}>
+            {language === 'es' ? 'Nutrición (por 100g)' : 'Nutrition (per 100g)'}
+          </Text>
 
           <View style={styles.caloriesCard}>
             <View>
-              <Text style={styles.caloriesLabel}>Energy</Text>
+              <Text style={styles.caloriesLabel}>{language === 'es' ? 'Energía' : 'Energy'}</Text>
               <Text style={styles.caloriesValue}>{ingredient.calories || 0}</Text>
             </View>
             <Text style={styles.kcalText}>kcal</Text>
           </View>
 
           <View style={styles.macrosContainer}>
-            {renderMacro("Protein", ingredient.macros?.protein, "#3b82f6")}
-            {renderMacro("Carbs", ingredient.macros?.carbs, "#eab308")}
-            {renderMacro("Fat", ingredient.macros?.fat, "#ef4444")}
-            {renderMacro("Fiber", ingredient.macros?.fiber, "#10b981")}
+            {renderMacro(language === 'es' ? 'Proteína' : 'Protein', ingredient.macros?.protein, "#3b82f6")}
+            {renderMacro(language === 'es' ? 'Carbos' : 'Carbs', ingredient.macros?.carbs, "#eab308")}
+            {renderMacro(language === 'es' ? 'Grasas' : 'Fat', ingredient.macros?.fat, "#ef4444")}
+            {renderMacro(language === 'es' ? 'Fibra' : 'Fiber', ingredient.macros?.fiber, "#10b981")}
           </View>
         </View>
 
         {/* Tags Section */}
         {ingredient.tags && ingredient.tags.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tags</Text>
+            <Text style={styles.sectionTitle}>{language === 'es' ? 'Etiquetas' : 'Tags'}</Text>
             <View style={styles.tagsContainer}>
               {ingredient.tags.map((tag, index) => (
                 <View key={index} style={styles.tagChip}>

@@ -1,5 +1,5 @@
 import Skeleton from "@/src/components/Skeleton";
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
 import { useOnboarding } from "@/src/hooks/useOnboarding";
 import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
+import { useTranslation } from "@/src/lib/i18n";
 import SwipeableIngredientItem from "../../../src/components/SwipeableIngredientItem";
 import api from "../../../src/lib/api";
 
@@ -26,7 +27,7 @@ const IngredientSkeleton = () => (
     paddingVertical: SPACING.m,
     paddingHorizontal: SPACING.m,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: '#e2e8f0',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center'
@@ -43,6 +44,8 @@ export default function IngredientsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const showOnboarding = useOnboarding('onboarding_swipe_ingredients');
+  const { t } = useTranslation();
+  const { colors } = useThemeColors();
 
   const [query, setQuery] = useState<string>("");
   const [debouncedQuery, setDebouncedQuery] = useState<string>("");
@@ -156,25 +159,25 @@ export default function IngredientsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={COLORS.text.light} style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="search" size={20} color={colors.text.light} style={styles.searchIcon} />
           <TextInput
-            placeholder="Search ingredient..."
+            placeholder={t('pantry.searchPlaceholder')}
             value={query}
             onChangeText={setQuery}
-            style={styles.searchInput}
-            placeholderTextColor={COLORS.text.light}
+            style={[styles.searchInput, { color: colors.text.primary }]}
+            placeholderTextColor={colors.text.light}
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
-          {(isFetching) && <ActivityIndicator size="small" color={COLORS.primary} />}
+          {(isFetching) && <ActivityIndicator size="small" color={colors.primary} />}
         </View>
 
         {error ? (
           <View style={styles.center}>
-            <Text style={styles.errorText}>Error loading ingredients</Text>
+            <Text style={[styles.errorText, { color: colors.error }]}>Error loading ingredients</Text>
           </View>
         ) : null}
 
@@ -187,11 +190,11 @@ export default function IngredientsScreen() {
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
-            refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor={COLORS.primary} />}
+            refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} tintColor={colors.primary} />}
             ListEmptyComponent={
               !isLoading ? (
                 <View style={styles.center}>
-                  <Text style={styles.emptyText}>No ingredients found.</Text>
+                  <Text style={[styles.emptyText, { color: colors.text.secondary }]}>{t('recipes.noRecipesFound')}</Text>
                 </View>
               ) : null
             }

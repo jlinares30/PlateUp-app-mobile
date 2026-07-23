@@ -1,5 +1,10 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import api from "@/src/lib/api";
+import { useTranslation } from "@/src/lib/i18n";
+import { formatQuantityAndUnit } from "@/src/lib/units";
+import { normalizeTags } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/store/useAuth";
+import { usePreferencesStore } from "@/src/store/usePreferencesStore";
 import { Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,12 +18,12 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import api from "../../../src/lib/api";
-import { normalizeTags } from "../../../src/lib/utils";
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, language } = useTranslation();
+  const { measurementSystem } = usePreferencesStore();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -94,7 +99,9 @@ export default function RecipeDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Recipe Details</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {language === 'es' ? 'Detalle de Receta' : 'Recipe Details'}
+        </Text>
         <View style={styles.headerRight}>
           {isAuthor && (
             <TouchableOpacity onPress={() => router.push(`/recipes/edit/${recipe._id}`)} style={styles.actionButton}>
@@ -121,7 +128,9 @@ export default function RecipeDetailScreen() {
           {/* Overlay Gradient or Badges */}
           <View style={styles.imageOverlay}>
             <View style={[styles.badge, styles.categoryBadge]}>
-              <Text style={styles.badgeText}>{recipe.category || "General"}</Text>
+              <Text style={styles.badgeText}>
+                {t(`recipes.categories.${recipe.category}` as any) || recipe.category || "General"}
+              </Text>
             </View>
           </View>
         </View>
@@ -138,12 +147,18 @@ export default function RecipeDetailScreen() {
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
               <Ionicons name="flame-outline" size={18} color={COLORS.text.secondary} />
-              <Text style={styles.metaText}>{recipe.difficulty || "Medium"}</Text>
+              <Text style={styles.metaText}>
+                {language === 'es'
+                  ? (recipe.difficulty === 'Easy' ? 'Fácil' : recipe.difficulty === 'Hard' ? 'Difícil' : 'Medio')
+                  : (recipe.difficulty || 'Medium')}
+              </Text>
             </View>
             <View style={styles.metaDivider} />
             <View style={styles.metaItem}>
               <Ionicons name={recipe.isPublic ? "globe-outline" : "lock-closed-outline"} size={18} color={COLORS.text.secondary} />
-              <Text style={styles.metaText}>{recipe.isPublic ? "Public" : "Private"}</Text>
+              <Text style={styles.metaText}>
+                {recipe.isPublic ? (language === 'es' ? 'Pública' : 'Public') : (language === 'es' ? 'Privada' : 'Private')}
+              </Text>
             </View>
           </View>
 
@@ -153,18 +168,21 @@ export default function RecipeDetailScreen() {
         {/* Ingredients */}
         {recipe.ingredients && recipe.ingredients.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ingredients</Text>
+            <Text style={styles.sectionTitle}>{t('recipes.ingredientsSection')}</Text>
             <View style={styles.card}>
-              {recipe.ingredients.map((ing, idx) => (
-                <View key={idx} style={[styles.ingredientRow, idx === recipe.ingredients!.length - 1 && { borderBottomWidth: 0 }]}>
-                  <View style={styles.bullet} />
-                  <Text style={styles.ingredientText}>
-                    <Text style={{ fontWeight: '700' }}>{ing.quantity} {ing.unit}</Text>
-                    <Text> of </Text>
-                    <Text style={{ color: COLORS.text.primary }}>{typeof ing.ingredient === "object" ? ing.ingredient.name : ing.ingredient}</Text>
-                  </Text>
-                </View>
-              ))}
+              {recipe.ingredients.map((ing, idx) => {
+                const formatted = formatQuantityAndUnit(ing.quantity, ing.unit, measurementSystem);
+                return (
+                  <View key={idx} style={[styles.ingredientRow, idx === recipe.ingredients!.length - 1 && { borderBottomWidth: 0 }]}>
+                    <View style={styles.bullet} />
+                    <Text style={styles.ingredientText}>
+                      <Text style={{ fontWeight: '700' }}>{formatted.quantity} {formatted.unit}</Text>
+                      <Text> {language === 'es' ? 'de' : 'of'} </Text>
+                      <Text style={{ color: COLORS.text.primary }}>{typeof ing.ingredient === "object" ? ing.ingredient.name : ing.ingredient}</Text>
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -172,7 +190,7 @@ export default function RecipeDetailScreen() {
         {/* Steps */}
         {recipe.steps && recipe.steps.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Instructions</Text>
+            <Text style={styles.sectionTitle}>{t('recipes.instructionsSection')}</Text>
             {recipe.steps?.map((step, idx) => (
               <View key={idx} style={styles.stepRow}>
                 <View style={styles.stepNumberContainer}>

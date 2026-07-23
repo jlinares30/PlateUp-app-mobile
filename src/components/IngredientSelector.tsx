@@ -1,5 +1,6 @@
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
 import api from "@/src/lib/api";
+import { useTranslation } from "@/src/lib/i18n";
 import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +27,8 @@ export default function IngredientSelector({
     onClose,
     onSelect,
 }: IngredientSelectorProps) {
+    const { t, language } = useTranslation();
+    const { colors } = useThemeColors();
     const [search, setSearch] = useState("");
 
     const { data: ingredients = [], isLoading } = useQuery({
@@ -45,61 +48,59 @@ export default function IngredientSelector({
     };
 
     const renderItem = ({ item }: { item: Ingredient }) => (
-        <TouchableOpacity style={styles.item} onPress={() => handleSelect(item)}>
-            <View style={styles.iconContainer}>
-                {/* Placeholder icon, ideally would be item.image if available */}
-                <Ionicons name="nutrition-outline" size={24} color={COLORS.primary} />
+        <TouchableOpacity style={[styles.item, { backgroundColor: colors.card }]} onPress={() => handleSelect(item)}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+                <Ionicons name="nutrition-outline" size={24} color={colors.primary} />
             </View>
             <View style={styles.info}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.unit}>{item.category || "General"}</Text>
+                <Text style={[styles.name, { color: colors.text.primary }]}>{item.name}</Text>
+                <Text style={[styles.unit, { color: colors.text.secondary }]}>{item.category || (language === 'es' ? "Sin categoría" : "Uncategorized")}</Text>
             </View>
-            <Ionicons name="add-circle-outline" size={24} color={COLORS.secondary} />
+            <Text style={[styles.unit, { color: colors.text.secondary }]}>{item.unit}</Text>
         </TouchableOpacity>
     );
 
     return (
-        <Modal visible={visible} animationType="slide" transparent>
+        <Modal
+            visible={visible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={onClose}
+        >
             <View style={styles.overlay}>
-                <View style={styles.container}>
+                <View style={[styles.container, { backgroundColor: colors.background }]}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>Select Ingredient</Text>
+                        <Text style={[styles.title, { color: colors.text.primary }]}>{language === 'es' ? "Seleccionar Ingrediente" : "Select Ingredient"}</Text>
                         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                            <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                            <Ionicons name="close" size={24} color={colors.text.primary} />
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.searchContainer}>
+                    <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
                         <Ionicons
                             name="search"
                             size={20}
-                            color={COLORS.text.light}
+                            color={colors.text.light}
                             style={styles.searchIcon}
                         />
                         <TextInput
-                            style={styles.searchInput}
-                            placeholder="Search ingredients..."
+                            style={[styles.searchInput, { color: colors.text.primary }]}
+                            placeholder={t('pantry.searchPlaceholder')}
+                            placeholderTextColor={colors.text.light}
                             value={search}
                             onChangeText={setSearch}
-                            autoFocus={true}
                         />
                     </View>
 
                     {isLoading ? (
-                        <ActivityIndicator
-                            size="large"
-                            color={COLORS.primary}
-                            style={{ marginTop: SPACING.xl }}
-                        />
+                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
                     ) : (
                         <FlatList
                             data={ingredients}
-                            keyExtractor={(item) => item._id}
                             renderItem={renderItem}
+                            keyExtractor={(item) => item._id}
                             contentContainerStyle={styles.list}
-                            ListEmptyComponent={
-                                <Text style={styles.emptyText}>No ingredients found</Text>
-                            }
+                            showsVerticalScrollIndicator={false}
                         />
                     )}
                 </View>

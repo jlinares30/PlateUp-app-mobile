@@ -1,7 +1,8 @@
 import Skeleton from "@/src/components/Skeleton";
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
 import { useOnboarding } from "@/src/hooks/useOnboarding";
 import { useRecipeQueries } from "@/src/hooks/useRecipeQueries";
+import { useTranslation } from "@/src/lib/i18n";
 import { normalizeTags } from "@/src/lib/utils";
 import { Ingredient, Recipe } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,6 +30,8 @@ const RecipeSkeleton = () => (
 );
 
 export default function RecipesScreen() {
+  const { t } = useTranslation();
+  const { colors } = useThemeColors();
   const showOnboarding = useOnboarding('onboarding_swipe_recipes');
   const { selectedIngredients, recipeQuery, debouncedRecipeQuery, setRecipeQuery, addIngredient, removeIngredient } = useRecipeFilters();
   const { recipesQuery: recipes, ingredientsQuery: allIngredients, isLoading, isRefetching, refetch } = useRecipeQueries(debouncedRecipeQuery, selectedIngredients);
@@ -65,25 +68,25 @@ export default function RecipesScreen() {
         shouldAnimate={index === 0 && showOnboarding}
       >
         <Link href={`/recipes/${item._id}`} asChild>
-          <TouchableOpacity style={styles.recipeCard} activeOpacity={0.9}>
+          <TouchableOpacity style={[styles.recipeCard, { backgroundColor: colors.card }]} activeOpacity={0.9}>
             <Image
               source={{ uri: item.image || "https://via.placeholder.com/300" }}
               style={styles.cardImage}
             />
             <View style={styles.recipeContent}>
               <View style={styles.recipeHeader}>
-                <Text style={styles.recipeTitle}>{item.title}</Text>
-                <View style={styles.timeContainer}>
-                  <Ionicons name="time-outline" size={14} color={COLORS.primary} />
-                  <Text style={styles.timeText}>{item.time}</Text>
+                <Text style={[styles.recipeTitle, { color: colors.text.primary }]}>{item.title}</Text>
+                <View style={[styles.timeContainer, { backgroundColor: colors.background }]}>
+                  <Ionicons name="time-outline" size={14} color={colors.primary} />
+                  <Text style={[styles.timeText, { color: colors.text.secondary }]}>{item.time}</Text>
                 </View>
               </View>
-              <Text style={styles.recipeDescription} numberOfLines={2}>{item.description}</Text>
+              <Text style={[styles.recipeDescription, { color: colors.text.secondary }]} numberOfLines={2}>{item.description}</Text>
 
               {item.tags && item.tags.length > 0 && (
                 <View style={styles.tagsRow}>
                   {normalizeTags(item.tags).slice(0, 3).map((tag, idx) => (
-                    <Text key={idx} style={styles.tagText}>#{tag}</Text>
+                    <Text key={idx} style={[styles.tagText, { color: colors.primary, backgroundColor: colors.primary + '20' }]}>#{tag}</Text>
                   ))}
                 </View>
               )}
@@ -111,22 +114,26 @@ export default function RecipesScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Recipe List</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text.primary }]}>{t('recipes.title')}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           {/* Toggle Filters Button */}
           <TouchableOpacity
-            style={[styles.filterToggleBtn, showFilters && styles.filterToggleBtnActive]}
+            style={[
+              styles.filterToggleBtn,
+              { backgroundColor: colors.background, borderColor: colors.border },
+              showFilters && { backgroundColor: colors.primary, borderColor: colors.primary }
+            ]}
             onPress={() => setShowFilters(!showFilters)}
           >
             <Ionicons
               name={showFilters ? "options" : "options-outline"}
               size={22}
-              color={showFilters ? COLORS.card : COLORS.text.primary}
+              color={showFilters ? '#ffffff' : colors.text.primary}
             />
             {activeFiltersCount > 0 && !showFilters && (
-              <View style={styles.filterBadge}>
+              <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
               </View>
             )}
@@ -134,12 +141,12 @@ export default function RecipesScreen() {
 
           <Link href="/recipes/my-recipes" asChild>
             <TouchableOpacity style={styles.backButton}>
-              <Ionicons name="bookmarks-outline" size={24} color={COLORS.text.primary} />
+              <Ionicons name="bookmarks-outline" size={24} color={colors.text.primary} />
             </TouchableOpacity>
           </Link>
           <Link href="/recipes/create" asChild>
             <TouchableOpacity style={styles.backButton}>
-              <Ionicons name="add" size={28} color={COLORS.text.primary} />
+              <Ionicons name="add" size={28} color={colors.text.primary} />
             </TouchableOpacity>
           </Link>
         </View>
@@ -149,12 +156,12 @@ export default function RecipesScreen() {
         {showFilters && (
           <Animated.View entering={FadeInDown.duration(250)}>
             <View style={styles.ingredientSelector}>
-              <Text style={styles.sectionTitle}>Filter by Ingredients</Text>
+              <Text style={styles.sectionTitle}>{t('recipes.filterIngredients')}</Text>
               <View style={styles.searchWrapper}>
                 <TextInput
                   value={ingredientQuery}
                   onChangeText={setIngredientQuery}
-                  placeholder="Type an ingredient..."
+                  placeholder={t('recipes.typeIngredient')}
                   style={styles.input}
                   placeholderTextColor={COLORS.text.light}
                 />
@@ -196,7 +203,7 @@ export default function RecipesScreen() {
             <View style={styles.mainSearch}>
               <Ionicons name="search" size={20} color={COLORS.text.light} style={{ marginRight: 8 }} />
               <TextInput
-                placeholder="Search recipe title..."
+                placeholder={t('recipes.searchTitle')}
                 value={recipeQuery}
                 onChangeText={setRecipeQuery}
                 style={styles.searchInput}
@@ -215,6 +222,7 @@ export default function RecipesScreen() {
               >
                 {CATEGORIES.map((item) => {
                   const isActive = selectedCategory === item;
+                  const categoryLabel = t(`recipes.categories.${item}` as any) || item;
                   return (
                     <TouchableOpacity
                       key={item}
@@ -226,7 +234,7 @@ export default function RecipesScreen() {
                       activeOpacity={0.7}
                     >
                       <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
-                        {item}
+                        {categoryLabel}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -249,7 +257,7 @@ export default function RecipesScreen() {
             ListEmptyComponent={
               !isLoading ? (
                 <View style={styles.center}>
-                  <Text style={styles.emptyText}>No recipes found for this category.</Text>
+                  <Text style={styles.emptyText}>{t('recipes.noRecipesFound')}</Text>
                 </View>
               ) : null
             }
@@ -312,6 +320,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.h3,
     fontWeight: '700',
     color: COLORS.text.primary,
+    textAlign: 'center',
   },
   content: {
     flex: 1,

@@ -1,6 +1,6 @@
 import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import Skeleton from "@/src/components/Skeleton";
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,8 +13,9 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import Animated, { FadeInDown, SlideOutRight } from "react-native-reanimated";
 import Toast from 'react-native-toast-message';
+import { formatQuantityAndUnit } from "@/src/lib/units";
+import { usePreferencesStore } from "@/src/store/usePreferencesStore";
 import api from "../../../src/lib/api";
 import { PantryItem, ShoppingListItem } from "../../../src/types";
 
@@ -53,104 +54,128 @@ const GroupedShoppingItemRow = ({
   isUpdating: boolean;
   isAddedToPantry: boolean;
 }) => {
-  // Check if all items in group are checked
-  const isGroupChecked = group.items.every(i => i.checked);
+  const { measurementSystem } = usePreferencesStore();
+  const { colors } = useThemeColors();
+  const isServerChecked = group.items.every(i => i.checked);
+  const [localChecked, setLocalChecked] = React.useState<boolean | null>(null);
+
+  // Sync with server data changes when group items list actually changes
+  React.useEffect(() => {
+    setLocalChecked(null);
+  }, [group.items]);
+
+  const isGroupChecked = localChecked !== null ? localChecked : isServerChecked;
+
+  const handleToggle = () => {
+    const nextState = !isGroupChecked;
+    setLocalChecked(nextState);
+    onToggleCheck(group.items);
+  };
 
   return (
-    <Animated.View
-      entering={FadeInDown.duration(300).springify().damping(20)}
-      exiting={SlideOutRight}
-      style={[
-        styles.row,
-        isGroupChecked && styles.rowChecked,
-        isAddedToPantry && styles.rowAdded // Apply green bg
-      ]}
-    >
-      {/* Checkbox for the whole group */}
+    <View style={{ marginBottom: SPACING.s }}>
       <TouchableOpacity
-        style={styles.checkArea}
-        onPress={() => onToggleCheck(group.items)}
-        activeOpacity={0.7}
+        activeOpacity={0.9}
+        delayPressIn={0}
+        onPress={handleToggle}
+        style={[
+          styles.row,
+          { backgroundColor: isGroupChecked ? colors.background : colors.card, borderColor: colors.border },
+          isGroupChecked && styles.rowChecked,
+          isAddedToPantry && styles.rowAdded // Apply green bg
+        ]}
       >
-        <View style={[
-          styles.checkbox,
-          isGroupChecked && styles.checkboxChecked,
-          isAddedToPantry && styles.checkboxAdded // Apply green checkbox
-        ]}>
-          {(isGroupChecked || isAddedToPantry) && <Ionicons name="checkmark" size={16} color="#fff" />}
+        {/* Checkbox for the whole group */}
+        <View style={styles.checkArea}>
+          <View style={[
+            styles.checkbox,
+            { borderColor: colors.primary },
+            isGroupChecked && { backgroundColor: colors.primary },
+            isAddedToPantry && styles.checkboxAdded // Apply green checkbox
+          ]}>
+            {(isGroupChecked || isAddedToPantry) && <Ionicons name="checkmark" size={16} color="#fff" />}
+          </View>
+        </View>
+
+        <View style={{ flex: 1 }}>
+          <Text style={[
+            styles.name,
+            { color: colors.text.primary },
+            isGroupChecked && [styles.textChecked, { color: colors.text.secondary }],
+            isAddedToPantry && styles.textAdded // Apply green text strikethrough
+          ]}>{group.name}</Text>
+
+          {/* Variants List */}
+          <View style={{ marginTop: 8, gap: 8 }}>
+            {group.items.map((item, idx) => {
+              const rawUnit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
+              const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Misc";
+              const formatted = formatQuantityAndUnit(item.quantity, item.unit || rawUnit, measurementSystem);
+
+              return (
+                <View key={item._id} style={[styles.variantRow, { borderTopColor: colors.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.meta, { color: colors.text.secondary }]}>
+                      {category ?? "Uncategorized"} · {formatted.unit || "unit"}
+                    </Text>
+                    {item.contributors && item.contributors.length > 0 && (
+                      <View style={{ marginTop: 2 }}>
+                        {item.contributors.map((contrib, cIdx) => {
+                          const contribFormatted = formatQuantityAndUnit(contrib.quantity, contrib.unit, measurementSystem);
+                          return (
+                            <Text key={cIdx} style={{ fontSize: 10, color: colors.text.secondary }}>
+                              {contribFormatted.quantity} {contribFormatted.unit || ''} (para {contrib.recipeTitle})
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Controls for this variant */}
+                  <View style={styles.controls}>
+                    <TouchableOpacity
+                      style={[styles.qtyBtn, { backgroundColor: colors.background }]}
+                      onPress={() => onChangeQuantity(item, item.quantity - 1)}
+                      disabled={isUpdating || isAddedToPantry} // Disable if added
+                    >
+                      <Ionicons name="remove" size={14} color={colors.text.primary} />
+                    </TouchableOpacity>
+
+                    <Text style={[styles.qtyText, { color: colors.text.primary }]}>{formatted.quantity}</Text>
+
+                    <TouchableOpacity
+                      style={[styles.qtyBtn, { backgroundColor: colors.background }]}
+                      onPress={() => onChangeQuantity(item, item.quantity + 1)}
+                      disabled={isUpdating || isAddedToPantry}
+                    >
+                      <Ionicons name="add" size={14} color={colors.text.primary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.removeBtn}
+                      onPress={() => onRemove(item._id)}
+                      disabled={isUpdating}
+                    >
+                      <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </View>
       </TouchableOpacity>
-
-      <View style={{ flex: 1 }}>
-        <Text style={[
-          styles.name,
-          isGroupChecked && styles.textChecked,
-          isAddedToPantry && styles.textAdded // Apply green text strikethrough
-        ]}>{group.name}</Text>
-
-        {/* Variants List */}
-        <View style={{ marginTop: 8, gap: 8 }}>
-          {group.items.map((item, idx) => {
-            const unit = typeof item.ingredient === 'object' ? item.ingredient.unit : item.unit;
-            const category = typeof item.ingredient === 'object' ? item.ingredient.category : "Misc";
-
-            return (
-              <View key={item._id} style={styles.variantRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.meta}>
-                    {category ?? "Uncategorized"} · {item.unit || unit || "unit"}
-                  </Text>
-                  {item.contributors && item.contributors.length > 0 && (
-                    <View style={{ marginTop: 2 }}>
-                      {item.contributors.map((contrib, cIdx) => (
-                        <Text key={cIdx} style={{ fontSize: 10, color: COLORS.text.secondary }}>
-                          {contrib.quantity} {contrib.unit || ''} (para {contrib.recipeTitle})
-                        </Text>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-                {/* Controls for this variant */}
-                <View style={styles.controls}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => onChangeQuantity(item, item.quantity - 1)}
-                    disabled={isUpdating || isAddedToPantry} // Disable if added
-                  >
-                    <Ionicons name="remove" size={14} color={COLORS.text.primary} />
-                  </TouchableOpacity>
-
-                  <Text style={[styles.qtyText]}>{item.quantity}</Text>
-
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => onChangeQuantity(item, item.quantity + 1)}
-                    disabled={isUpdating || isAddedToPantry}
-                  >
-                    <Ionicons name="add" size={14} color={COLORS.text.primary} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.removeBtn}
-                    onPress={() => onRemove(item._id)}
-                    disabled={isUpdating}
-                  >
-                    <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-    </Animated.View>
+    </View>
   );
 };
+
+import { useTranslation } from "@/src/lib/i18n";
 
 export default function ShoppingCart() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t, language } = useTranslation();
 
   // 1. Fetch Shopping List
   const { data: cart = [], isLoading, error } = useQuery({
@@ -382,19 +407,19 @@ export default function ShoppingCart() {
     if (itemsToAdd.length === 0) {
       Toast.show({
         type: 'info',
-        text1: 'No items to add',
-        text2: "Check items in your list first."
+        text1: language === 'es' ? 'Sin elementos para agregar' : 'No items to add',
+        text2: language === 'es' ? 'Marca elementos en tu lista primero.' : 'Check items in your list first.'
       });
       return;
     }
 
     showAlert(
-      "Add to Pantry",
-      `Add ${itemsToAdd.length} checked items to your pantry?`,
+      language === 'es' ? 'Agregar a la despensa' : 'Add to Pantry',
+      language === 'es' ? `¿Deseas agregar ${itemsToAdd.length} elemento(s) marcados a tu despensa?` : `Add ${itemsToAdd.length} checked items to your pantry?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t('common.cancel'), style: "cancel" },
         {
-          text: "Add to Pantry",
+          text: language === 'es' ? 'Agregar' : 'Add to Pantry',
           onPress: () => addToPantryMutation.mutate(itemsToAdd)
         }
       ]
@@ -402,11 +427,15 @@ export default function ShoppingCart() {
   };
 
   const handleRemove = useCallback((itemId: string) => {
-    showAlert("Remove", "Remove this item from shopping list?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: () => removeMutation.mutate(itemId) }
-    ]);
-  }, [removeMutation]);
+    showAlert(
+      language === 'es' ? 'Eliminar Elemento' : 'Remove Item',
+      language === 'es' ? '¿Quitar este elemento de la lista de compras?' : 'Remove this item from shopping list?',
+      [
+        { text: t('common.cancel'), style: "cancel" },
+        { text: t('common.delete'), style: "destructive", onPress: () => removeMutation.mutate(itemId) }
+      ]
+    );
+  }, [removeMutation, language, t]);
 
   // Helper functions
   const handleChangeQuantity = useCallback((item: ShoppingListItem, newQuantity: number) => {
@@ -422,10 +451,14 @@ export default function ShoppingCart() {
   }, [updateMutation]);
 
   const handleClearAll = () => {
-    showAlert("Clear List", "Are you sure you want to remove all items?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Clear All", style: "destructive", onPress: () => clearAllMutation.mutate() }
-    ]);
+    showAlert(
+      language === 'es' ? 'Vaciar Lista' : 'Clear List',
+      language === 'es' ? '¿Estás seguro de que deseas eliminar todos los elementos de la lista?' : 'Are you sure you want to remove all items?',
+      [
+        { text: t('common.cancel'), style: "cancel" },
+        { text: language === 'es' ? 'Vaciar Todo' : 'Clear All', style: "destructive", onPress: () => clearAllMutation.mutate() }
+      ]
+    );
   };
 
   const totalItems = cart.reduce((s: number, i: ShoppingListItem) => s + i.quantity, 0);
@@ -468,18 +501,42 @@ export default function ShoppingCart() {
     return Object.values(groups);
   }, [cart]);
 
-  const handleToggleGroup = useCallback((items: ShoppingListItem[]) => {
-    // If all checked -> uncheck all. If any unchecked -> check all.
-    const allChecked = items.every(i => i.checked);
-    const newStatus = !allChecked;
+  const pendingSyncRef = React.useRef<Record<string, boolean>>({});
+  const syncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Optimistic / Multiple mutations
-    items.forEach(item => {
-      if (item.checked !== newStatus) {
-        updateMutation.mutate({ itemId: item._id, checked: newStatus });
-      }
+  const handleToggleGroup = useCallback((items: ShoppingListItem[]) => {
+    const isAllChecked = items.every(i => i.checked);
+    const newStatus = !isAllChecked;
+    const targetIds = new Set(items.map(i => i._id));
+
+    // 1. Respuesta visual INSTANTÁNEA (0ms de retraso) en la interfaz local
+    queryClient.setQueryData<ShoppingListItem[]>(['shoppingList'], (old) => {
+      if (!old) return [];
+      return old.map(item => targetIds.has(item._id) ? { ...item, checked: newStatus } : item);
     });
-  }, [updateMutation]);
+
+    // 2. Acumular cambios en cola diferida
+    items.forEach(item => {
+      pendingSyncRef.current[item._id] = newStatus;
+    });
+
+    // 3. Enviar al servidor tras 800ms de inactividad
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      const itemsToSync = { ...pendingSyncRef.current };
+      pendingSyncRef.current = {};
+
+      try {
+        await Promise.all(
+          Object.entries(itemsToSync).map(([itemId, checked]) =>
+            api.put(`/shopping-list/${itemId}`, { checked })
+          )
+        );
+      } catch (e) {
+        console.error("Debounced shopping list sync error:", e);
+      }
+    }, 800);
+  }, [queryClient]);
 
   const renderGroup = useCallback(({ item }: { item: any }) => {
     // Check if any item in this group has been added to pantry
@@ -497,43 +554,42 @@ export default function ShoppingCart() {
     );
   }, [handleToggleGroup, handleChangeQuantity, handleRemove, updateMutation.isPending, removeMutation.isPending, addedItems]);
 
+  const { colors } = useThemeColors();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {cart.length > 0 && (
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleAddToPantry} style={styles.addToPantryBtn}>
-            <Ionicons name="nutrition" size={18} color={COLORS.primary} style={{ marginRight: 4 }} />
-            <Text style={styles.addToPantryText}>Add to Pantry</Text>
+          <TouchableOpacity onPress={handleAddToPantry} style={[styles.addToPantryBtn, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="nutrition" size={18} color={colors.primary} style={{ marginRight: 4 }} />
+            <Text style={[styles.addToPantryText, { color: colors.primary }]}>{t('shopping.addToPantry')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleClearAll} style={styles.clearButton}>
-            <Text style={styles.clearButtonText}>Clear All</Text>
+            <Text style={[styles.clearButtonText, { color: colors.error }]}>{t('shopping.clearAll')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <View style={styles.summary}>
+      <View style={[styles.summary, { backgroundColor: colors.card }]}>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>{cart.length}</Text>
-          <Text style={styles.summaryLabel}>Items</Text>
+          <Text style={[styles.summaryValue, { color: colors.primary }]}>{cart.length}</Text>
+          <Text style={[styles.summaryLabel, { color: colors.text.secondary }]}>Items</Text>
         </View>
-        <View style={styles.summaryDivider} />
-        {/* <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>{totalItems}</Text>
-          <Text style={styles.summaryLabel}>Total Qty</Text>
-        </View> */}
+        <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryValue, { color: colors.accent }]}>{cart.filter((i: ShoppingListItem) => i.checked).length}</Text>
+          <Text style={[styles.summaryLabel, { color: colors.text.secondary }]}>{language === 'es' ? 'Listos' : 'Done'}</Text>
+        </View>
       </View>
 
       {isLoading && cart.length === 0 ? (
         renderSkeletons()
       ) : cart.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="cart-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
-          <Text style={styles.emptyText}>Your list is empty.</Text>
-          <TouchableOpacity
-            style={styles.emptyButton}
-            onPress={() => router.push("/ingredients")}
-          >
-            <Text style={styles.emptyButtonText}>Add Ingredients</Text>
+          <Ionicons name="cart-outline" size={64} color={colors.text.light} style={{ marginBottom: SPACING.m }} />
+          <Text style={[styles.emptyText, { color: colors.text.primary }]}>{t('shopping.emptyTitle')}</Text>
+          <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.primary }]} onPress={() => router.push('/recipes')}>
+            <Text style={[styles.emptyButtonText, { color: '#ffffff' }]}>{t('shopping.exploreRecipes')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -546,10 +602,10 @@ export default function ShoppingCart() {
         />
       )}
       <TouchableOpacity
-        style={styles.addButton}
+        style={[styles.addButton, { backgroundColor: colors.primary }]}
         onPress={() => router.push("/ingredients")}
       >
-        <Ionicons name="add" size={28} color={COLORS.card} />
+        <Ionicons name="add" size={28} color={colors.card} />
       </TouchableOpacity>
 
       <ConfirmModal

@@ -1,33 +1,34 @@
 import MenuButton from "@/src/components/MenuButton";
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
+import api from "@/src/lib/api";
+import { TranslationKey, useTranslation } from "@/src/lib/i18n";
 import { useAuthStore } from "@/src/store/useAuth";
+import { useQuery } from '@tanstack/react-query';
 import { Href, useRouter } from "expo-router";
 import { Box, Calendar, ChefHat, Search, ShoppingBag, User as UserIcon } from "lucide-react-native";
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
-
 const AnimatedView = Animated.createAnimatedComponent(View);
-
-import api from "@/src/lib/api";
-import { useQuery } from '@tanstack/react-query';
-
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good Morning";
-  if (hour < 18) return "Good Afternoon";
-  return "Good Evening";
-};
 
 export default function AppHome() {
   const router = useRouter();
-  const { logout, user } = useAuthStore();
+  const { user } = useAuthStore();
+  const { t, language } = useTranslation();
+  const { colors } = useThemeColors();
 
-  const handleLogout = () => {
-    logout();
-    router.replace("/(auth)/login");
-  }
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (language === 'es') {
+      if (hour < 12) return "Buenos días";
+      if (hour < 18) return "Buenas tardes";
+      return "Buenas noches";
+    }
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
 
   // Fetch Dashboard Stats
   const { data: stats } = useQuery({
@@ -42,61 +43,55 @@ export default function AppHome() {
   const menuItems = [
     {
       id: '1',
-      title: 'Recipes',
-      description: 'Discover delicious meals',
+      titleKey: 'sidebar.recipes' as TranslationKey,
+      description: language === 'es' ? 'Recetas y platillos' : 'Discover delicious meals',
       icon: <ChefHat size={28} color={COLORS.card} />,
       color: '#ef4444',
-      gradient: ['#ef4444', '#f87171'],
       route: '/recipes' as Href,
       delay: 50
     },
     {
       id: '4',
-      title: 'Meal Plans',
-      description: 'Organize your week',
+      titleKey: 'sidebar.mealPlans' as TranslationKey,
+      description: language === 'es' ? 'Planifica tu semana' : 'Organize your week',
       icon: <Calendar size={28} color={COLORS.card} />,
       color: '#10b981',
-      gradient: ['#10b981', '#34d399'],
       route: '/mealplans' as Href,
       delay: 100
     },
     {
       id: '5',
-      title: 'Shopping',
-      description: 'Your grocery list',
+      titleKey: 'sidebar.shoppingList' as TranslationKey,
+      description: language === 'es' ? 'Lista de supermercado' : 'Your grocery list',
       icon: <ShoppingBag size={28} color={COLORS.card} />,
       color: '#f59e0b',
-      gradient: ['#f59e0b', '#fbbf24'],
       route: '/shopping' as Href,
       delay: 150
     },
     {
       id: '7',
-      title: 'My Pantry',
-      description: 'Manage inventory',
+      titleKey: 'sidebar.pantry' as TranslationKey,
+      description: language === 'es' ? 'Tu inventario' : 'Manage inventory',
       icon: <Box size={28} color={COLORS.card} />,
       color: '#8b5cf6',
-      gradient: ['#8b5cf6', '#a78bfa'],
       route: '/pantry' as Href,
       delay: 200
     },
     {
       id: '6',
-      title: 'Ingredients',
-      description: 'Browse database',
+      titleKey: 'sidebar.ingredients' as TranslationKey,
+      description: language === 'es' ? 'Catálogo completo' : 'Browse database',
       icon: <Search size={28} color={COLORS.card} />,
       color: '#3b82f6',
-      gradient: ['#3b82f6', '#60a5fa'],
       route: '/ingredients' as Href,
       delay: 250
     },
     {
       id: '8',
-      title: 'Profile',
-      description: 'Account settings',
+      titleKey: 'sidebar.profile' as TranslationKey,
+      description: language === 'es' ? 'Ajustes de cuenta' : 'Account settings',
       icon: <UserIcon size={28} color={COLORS.card} />,
       color: '#64748b',
-      gradient: ['#64748b', '#94a3b8'],
       route: '/profile' as Href,
       delay: 300
     }
@@ -109,33 +104,33 @@ export default function AppHome() {
       style={{ width: '48%', marginBottom: SPACING.m }}
     >
       <TouchableOpacity
-        style={[styles.menuItem]}
+        style={[styles.menuItem, { backgroundColor: colors.card }]}
         onPress={() => router.push(item.route)}
         activeOpacity={0.9}
       >
         <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
           {item.icon}
         </View>
-        <Text style={styles.menuTitle}>{item.title}</Text>
-        <Text style={styles.menuDescription} numberOfLines={1}>{item.description}</Text>
+        <Text style={[styles.menuTitle, { color: colors.text.primary }]}>{t(item.titleKey)}</Text>
+        <Text style={[styles.menuDescription, { color: colors.text.secondary }]} numberOfLines={2}>{item.description}</Text>
       </TouchableOpacity>
     </AnimatedView>
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
       {/* Header */}
       <View style={styles.header}>
         <View style={{ marginRight: SPACING.m }}>
           <MenuButton />
         </View>
         <AnimatedView entering={FadeInDown.duration(400)} style={styles.welcomeContainer}>
-          <Text style={styles.subtitleText}>{getGreeting()},</Text>
-          <Text style={styles.welcomeText}>{user?.name || 'Chef'}!</Text>
+          <Text style={[styles.subtitleText, { color: colors.text.secondary }]}>{getGreeting()},</Text>
+          <Text style={[styles.welcomeText, { color: colors.text.primary }]}>{user?.name || 'Chef'}!</Text>
         </AnimatedView>
         <AnimatedView entering={FadeInDown.delay(100).duration(400)}>
           <TouchableOpacity
-            style={styles.avatar}
+            style={[styles.avatar, { backgroundColor: colors.primary }]}
             onPress={() => {
               router.push('/profile');
             }}
@@ -147,7 +142,7 @@ export default function AppHome() {
                   style={styles.avatarImage}
                 />
               ) : (
-                <Text style={styles.avatarText}>{user?.name?.charAt(0)}</Text>
+                <Text style={[styles.avatarText, { color: '#ffffff' }]}>{user?.name?.charAt(0)}</Text>
               )
             }
           </TouchableOpacity>
@@ -155,40 +150,40 @@ export default function AppHome() {
       </View>
 
       {/* Hero Section */}
-      <AnimatedView entering={FadeInUp.delay(150).springify().damping(18)} style={styles.heroSection}>
+      <AnimatedView entering={FadeInUp.delay(150).springify().damping(18)} style={[styles.heroSection, { backgroundColor: colors.card, shadowColor: colors.primary }]}>
         <View style={styles.heroContent}>
           <Image
             source={require("@/assets/images/logo_plateup-removebg.png")}
-            style={{ width: 60, height: 60, resizeMode: 'contain', marginBottom: SPACING.s, tintColor: COLORS.card }}
+            style={{ width: 60, height: 60, resizeMode: 'contain', marginBottom: SPACING.s, tintColor: colors.primary }}
           />
-          <Text style={styles.heroTitle}>What's cooking?</Text>
-          <Text style={styles.heroSubtitle}>Find the perfect recipe for today</Text>
+          <Text style={[styles.heroTitle, { color: colors.text.primary }]}>{t('dashboard.subtitle')}</Text>
+          <Text style={[styles.heroSubtitle, { color: colors.text.secondary }]}>{language === 'es' ? 'Encuentra la receta perfecta para hoy' : 'Find the perfect recipe for today'}</Text>
         </View>
       </AnimatedView>
 
       {/* Menu Grid */}
       <View style={styles.menuSection}>
-        <Text style={styles.sectionTitle}>Dashboard</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>{t('dashboard.menu')}</Text>
         <View style={styles.menuGrid}>
           {menuItems.map(renderMenuItem)}
         </View>
       </View>
 
       {/* Stats Quick View */}
-      <AnimatedView entering={FadeInDown.delay(200).springify().damping(18)} style={styles.statsContainer}>
+      <AnimatedView entering={FadeInDown.delay(200).springify().damping(18)} style={[styles.statsContainer, { backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/recipes/my-recipes')}>
-          <Text style={[styles.statNumber, { color: COLORS.accent }]}>{stats?.recipesCount ?? 0}</Text>
-          <Text style={styles.statLabel}>Recipes</Text>
+          <Text style={[styles.statNumber, { color: colors.accent }]}>{stats?.recipesCount ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('sidebar.recipes')}</Text>
         </TouchableOpacity>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/recipes/my-recipes')}>
-          <Text style={[styles.statNumber, { color: COLORS.warning }]}>{stats?.favoritesCount ?? 0}</Text>
-          <Text style={styles.statLabel}>Favorites</Text>
+          <Text style={[styles.statNumber, { color: colors.warning }]}>{stats?.favoritesCount ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('recipes.favorites')}</Text>
         </TouchableOpacity>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
         <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => router.push('/mealplans')}>
-          <Text style={[styles.statNumber, { color: COLORS.secondary }]}>{stats?.plansCount ?? 0}</Text>
-          <Text style={styles.statLabel}>Plans</Text>
+          <Text style={[styles.statNumber, { color: colors.secondary }]}>{stats?.plansCount ?? 0}</Text>
+          <Text style={[styles.statLabel, { color: colors.text.secondary }]}>{t('sidebar.mealPlans')}</Text>
         </TouchableOpacity>
       </AnimatedView>
     </ScrollView>
@@ -259,16 +254,20 @@ const styles = StyleSheet.create({
     ...SHADOWS.large,
     shadowColor: COLORS.primary,
   },
-  heroContent: {},
+  heroContent: {
+    alignItems: 'center',
+  },
   heroTitle: {
     fontSize: FONTS.sizes.h2,
     fontWeight: '700',
     color: COLORS.card,
     marginBottom: SPACING.xs,
+    textAlign: 'center',
   },
   heroSubtitle: {
     fontSize: FONTS.sizes.body,
     color: COLORS.text.light,
+    textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -287,11 +286,13 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.h2,
     fontWeight: '800',
     marginBottom: 2,
+    textAlign: 'center',
   },
   statLabel: {
     fontSize: FONTS.sizes.small,
     color: COLORS.text.secondary,
     fontWeight: '600',
+    textAlign: 'center',
   },
   statDivider: {
     width: 1,
@@ -316,19 +317,20 @@ const styles = StyleSheet.create({
   menuItem: {
     backgroundColor: COLORS.card,
     borderRadius: SPACING.l,
-    padding: SPACING.m,
+    paddingVertical: SPACING.m,
+    paddingHorizontal: SPACING.s,
     alignItems: 'center',
-    height: 140,
+    minHeight: 145,
     justifyContent: 'center',
     ...SHADOWS.small,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.s,
+    marginBottom: SPACING.xs + 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -340,10 +342,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 2,
+    textAlign: 'center',
   },
   menuDescription: {
     fontSize: FONTS.sizes.tiny,
     color: COLORS.text.secondary,
+    textAlign: 'center',
+    lineHeight: 14,
+    paddingHorizontal: 4,
   },
   avatarImage: {
     width: '100%',

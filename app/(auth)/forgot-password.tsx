@@ -16,8 +16,11 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
+import { useTranslation } from "@/src/lib/i18n";
+
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { t, language } = useTranslation();
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -49,7 +52,10 @@ export default function ForgotPasswordScreen() {
     if (!email || !newPassword || !confirmPassword) return;
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(
+        language === 'es' ? 'Error' : 'Error',
+        language === 'es' ? 'Las contraseñas no coinciden' : 'Passwords do not match'
+      );
       return;
     }
 
@@ -60,15 +66,22 @@ export default function ForgotPasswordScreen() {
         newPassword,
       });
 
-      Alert.alert("Success", "Password reset successfully! Please log in with your new password.", [
-        {
-          text: "OK",
-          onPress: () => router.replace("/(auth)/login"),
-        },
-      ]);
+      Alert.alert(
+        language === 'es' ? '¡Éxito!' : 'Success',
+        language === 'es' ? '¡Contraseña restablecida con éxito! Inicia sesión con tu nueva contraseña.' : 'Password reset successfully! Please log in with your new password.',
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(auth)/login"),
+          },
+        ]
+      );
     } catch (error: any) {
-      const message = error.response?.data?.message || "Could not reset password. Please check your email.";
-      Alert.alert("Reset Failed", message);
+      const message = error.response?.data?.message || (language === 'es' ? 'No se pudo restablecer la contraseña. Verifica tu correo.' : 'Could not reset password. Please check your email.');
+      Alert.alert(
+        language === 'es' ? 'Error al Restablecer' : 'Reset Failed',
+        message
+      );
     } finally {
       setLoading(false);
     }

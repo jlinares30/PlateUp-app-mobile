@@ -19,9 +19,12 @@ import Toast from 'react-native-toast-message';
 import api from "../../../src/lib/api";
 
 
+import { useTranslation } from "@/src/lib/i18n";
+
 export default function PantryAddScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { t } = useTranslation();
     const [query, setQuery] = useState("");
     const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -133,7 +136,7 @@ export default function PantryAddScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="close" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.title}>Add to Pantry</Text>
+                <Text style={styles.title}>{t('pantry.addItem')}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -141,7 +144,7 @@ export default function PantryAddScreen() {
                 <Ionicons name="search" size={20} color={COLORS.text.light} style={styles.searchIcon} />
                 <TextInput
                     style={styles.input}
-                    placeholder="Search ingredients..."
+                    placeholder={t('pantry.searchPlaceholder')}
                     value={query}
                     onChangeText={setQuery}
                     autoFocus
@@ -169,7 +172,7 @@ export default function PantryAddScreen() {
                     ListEmptyComponent={
                         !isLoading ? (
                             <View style={styles.center}>
-                                <Text style={styles.emptyText}>No ingredients found.</Text>
+                                <Text style={styles.emptyText}>{t('recipes.noRecipesFound')}</Text>
                             </View>
                         ) : null
                     }

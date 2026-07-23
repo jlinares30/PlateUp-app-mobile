@@ -1,17 +1,106 @@
 import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, SlideOutRight } from 'react-native-reanimated';
 import api from '../../../src/lib/api';
 import { PantryItem } from '../../../src/types';
+
+import { useTranslation } from "@/src/lib/i18n";
+
+const PantryItemRow = React.memo(({
+    item,
+    onStockChange,
+    onRemove,
+    getStockColor,
+    t
+}: {
+    item: PantryItem;
+    onStockChange: (itemId: string, newLevel: 'FULL' | 'MEDIUM' | 'LOW') => void;
+    onRemove: (itemId: string) => void;
+    getStockColor: (level?: string) => string;
+    t: any;
+}) => {
+    const { colors } = useThemeColors();
+    const ingredient = (item.ingredient && typeof item.ingredient === 'object') ? item.ingredient : { name: 'Unknown', _id: '', unit: '', image: undefined };
+    const [localLevel, setLocalLevel] = React.useState<'FULL' | 'MEDIUM' | 'LOW' | null>(null);
+
+    React.useEffect(() => {
+        setLocalLevel(null);
+    }, [item.stockLevel]);
+
+    const currentLevel = localLevel !== null ? localLevel : (item.stockLevel || 'FULL');
+
+    const handleSelectLevel = (level: 'FULL' | 'MEDIUM' | 'LOW') => {
+        setLocalLevel(level); // 0ms instant visual state update!
+        onStockChange(item._id, level);
+    };
+
+    return (
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+            {ingredient.image ? (
+                <Image source={{ uri: ingredient.image }} style={styles.itemImage} />
+            ) : (
+                <View style={[styles.itemImage, { backgroundColor: colors.border, justifyContent: 'center', alignItems: 'center' }]}>
+                    <Ionicons name="image-outline" size={20} color={colors.text.light} />
+                </View>
+            )}
+
+            <View style={styles.itemInfo}>
+                <Text style={[styles.itemName, { color: colors.text.primary }]}>{ingredient.name}</Text>
+                <Text style={[styles.itemUnit, { color: getStockColor(currentLevel), fontWeight: '600' }]}>
+                    {currentLevel === 'FULL' ? t('pantry.stockFull') : currentLevel === 'MEDIUM' ? t('pantry.stockMedium') : t('pantry.stockLow')}
+                </Text>
+            </View>
+
+            <View style={styles.controls}>
+                {(['FULL', 'MEDIUM', 'LOW'] as const).map((level) => {
+                    const letter = level === 'FULL'
+                        ? (t('pantry.stockFull').charAt(0))
+                        : level === 'MEDIUM'
+                            ? (t('pantry.stockMedium').charAt(0))
+                            : (t('pantry.stockLow').charAt(0));
+                    return (
+                        <TouchableOpacity
+                            key={level}
+                            delayPressIn={0}
+                            activeOpacity={0.7}
+                            onPress={() => handleSelectLevel(level)}
+                            style={[
+                                styles.levelButton,
+                                { backgroundColor: colors.background, borderColor: colors.border },
+                                currentLevel === level && { backgroundColor: getStockColor(level), borderColor: getStockColor(level) }
+                            ]}
+                        >
+                            <Text style={[
+                                styles.levelButtonText,
+                                { color: colors.text.secondary },
+                                currentLevel === level && { color: 'white' }
+                            ]}>
+                                {letter}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+
+                <TouchableOpacity
+                    delayPressIn={0}
+                    onPress={() => onRemove(item._id)}
+                    style={[styles.removeButton]}
+                >
+                    <Ionicons name="trash-outline" size={16} color={COLORS.error} />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+});
 
 export default function PantryScreen() {
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { t, language } = useTranslation();
 
     // 1. Fetch Pantry
     const { data: pantry = [], isLoading, isError, error } = useQuery({
@@ -32,15 +121,36 @@ export default function PantryScreen() {
         },
     });
 
-    // 3. Update Mutation
-    const updateMutation = useMutation({
-        mutationFn: async ({ itemId, stockLevel }: { itemId: string; stockLevel: 'FULL' | 'MEDIUM' | 'LOW' | 'OUT' }) => {
-            await api.put(`/pantry/${itemId}`, { stockLevel });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['pantry'] });
-        },
-    });
+    const pendingPantrySyncRef = React.useRef<Record<string, 'FULL' | 'MEDIUM' | 'LOW'>>({});
+    const pantrySyncTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleStockChange = useCallback((itemId: string, newLevel: 'FULL' | 'MEDIUM' | 'LOW') => {
+        // 1. Respuesta visual instantánea en cache local (0ms)
+        queryClient.setQueryData<PantryItem[]>(['pantry'], (old) => {
+            if (!old) return [];
+            return old.map(item => item._id === itemId ? { ...item, stockLevel: newLevel } : item);
+        });
+
+        // 2. Agregar a cola de sincronización
+        pendingPantrySyncRef.current[itemId] = newLevel;
+
+        // 3. Temporizador debounce de 800ms
+        if (pantrySyncTimerRef.current) clearTimeout(pantrySyncTimerRef.current);
+        pantrySyncTimerRef.current = setTimeout(async () => {
+            const itemsToSync = { ...pendingPantrySyncRef.current };
+            pendingPantrySyncRef.current = {};
+
+            try {
+                await Promise.all(
+                    Object.entries(itemsToSync).map(([id, stockLevel]) =>
+                        api.put(`/pantry/${id}`, { stockLevel })
+                    )
+                );
+            } catch (e) {
+                console.error("Debounced pantry stock sync error:", e);
+            }
+        }, 800);
+    }, [queryClient]);
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalConfig, setModalConfig] = useState({
@@ -56,97 +166,51 @@ export default function PantryScreen() {
 
     const confirmDelete = (id: string) => {
         showAlert(
-            "Delete Item",
-            "Are you sure you want to delete this item?",
+            language === 'es' ? 'Eliminar Elemento' : 'Delete Item',
+            language === 'es' ? '¿Estás seguro de que deseas eliminar este elemento?' : 'Are you sure you want to delete this item?',
             [
-                { text: "Cancel", style: "cancel", onPress: () => setModalVisible(false) },
-                { text: "Delete", onPress: () => { deleteMutation.mutate(id); setModalVisible(false); }, style: 'destructive' }
+                { text: t('common.cancel'), style: "cancel", onPress: () => setModalVisible(false) },
+                { text: t('common.delete'), onPress: () => { deleteMutation.mutate(id); setModalVisible(false); }, style: 'destructive' }
             ]
         );
     };
 
-    const handleRemove = (itemId: string) => {
+    const handleRemove = useCallback((itemId: string) => {
         confirmDelete(itemId);
-    };
+    }, [confirmDelete]);
 
-    const handleStockChange = (item: PantryItem, newLevel: 'FULL' | 'MEDIUM' | 'LOW') => {
-        updateMutation.mutate({ itemId: item._id, stockLevel: newLevel });
-    };
-
-    const getStockColor = (level?: string) => {
+    const getStockColor = useCallback((level?: string) => {
         switch (level) {
             case 'FULL': return '#10b981'; // Green
             case 'MEDIUM': return '#f59e0b'; // Amber
             case 'LOW': return '#f97316'; // Orange
-            //case 'OUT': return '#ef4444'; // Red
             default: return COLORS.text.secondary;
         }
-    };
+    }, []);
 
-    const renderItem = ({ item, index }: { item: PantryItem; index: number }) => {
-        const ingredient = (item.ingredient && typeof item.ingredient === 'object') ? item.ingredient : { name: 'Unknown', _id: '', unit: '', image: undefined };
-        const currentLevel = item.stockLevel || 'FULL';
-
+    const renderItem = useCallback(({ item, index }: { item: PantryItem; index: number }) => {
         return (
-            <Animated.View
-                entering={FadeInDown.duration(300).springify().damping(20)}
-                exiting={SlideOutRight}
-                style={styles.card}
-            >
-                {ingredient.image ? (
-                    <Image source={{ uri: ingredient.image }} style={styles.itemImage} />
-                ) : (
-                    <View style={[styles.itemImage, { backgroundColor: COLORS.border, justifyContent: 'center', alignItems: 'center' }]}>
-                        <Ionicons name="image-outline" size={20} color={COLORS.text.light} />
-                    </View>
-                )}
-
-                <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{ingredient.name}</Text>
-                    <Text style={[styles.itemUnit, { color: getStockColor(currentLevel), fontWeight: '600' }]}>
-                        {currentLevel}
-                    </Text>
-                </View>
-
-                <View style={styles.controls}>
-                    {(['FULL', 'MEDIUM', 'LOW'] as const).map((level) => (
-                        <TouchableOpacity
-                            key={level}
-                            onPress={() => handleStockChange(item, level)}
-                            style={[
-                                styles.levelButton,
-                                currentLevel === level && { backgroundColor: getStockColor(level) }
-                            ]}
-                        >
-                            <Text style={[
-                                styles.levelButtonText,
-                                currentLevel === level && { color: 'white' }
-                            ]}>
-                                {level.charAt(0)}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-
-                    <TouchableOpacity
-                        onPress={() => handleRemove(item._id)}
-                        style={[styles.removeButton]}
-                    >
-                        <Ionicons name="trash-outline" size={16} color={COLORS.error} />
-                    </TouchableOpacity>
-                </View>
-            </Animated.View>
+            <PantryItemRow
+                item={item}
+                onStockChange={handleStockChange}
+                onRemove={handleRemove}
+                getStockColor={getStockColor}
+                t={t}
+            />
         );
-    };
+    }, [handleStockChange, handleRemove, getStockColor, t]);
+
+    const { colors } = useThemeColors();
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             {isLoading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
                 </View>
             ) : isError ? (
                 <View style={styles.center}>
-                    <Text style={styles.errorText}>Error loading pantry: {(error as any).message}</Text>
+                    <Text style={[styles.errorText, { color: colors.error }]}>Error loading pantry: {(error as any).message}</Text>
                 </View>
             ) : (
                 <>
@@ -158,23 +222,23 @@ export default function PantryScreen() {
                         showsVerticalScrollIndicator={false}
                         ListEmptyComponent={
                             <View style={styles.emptyContainer}>
-                                <Ionicons name="basket-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
-                                <Text style={styles.emptyText}>Your pantry is empty.</Text>
-                                <Text style={styles.emptySubtext}>Add items to track what you have!</Text>
+                                <Ionicons name="basket-outline" size={64} color={colors.text.light} style={{ marginBottom: SPACING.m }} />
+                                <Text style={[styles.emptyText, { color: colors.text.primary }]}>{t('pantry.emptyTitle')}</Text>
+                                <Text style={[styles.emptySubtext, { color: colors.text.secondary }]}>{t('pantry.emptySubtitle')}</Text>
                                 <TouchableOpacity
-                                    style={styles.emptyButton}
+                                    style={[styles.emptyButton, { backgroundColor: colors.primary }]}
                                     onPress={() => router.push('/pantry/add')}
                                 >
-                                    <Text style={styles.emptyButtonText}>Add First Item</Text>
+                                    <Text style={[styles.emptyButtonText, { color: '#ffffff' }]}>{t('pantry.addItem')}</Text>
                                 </TouchableOpacity>
                             </View>
                         }
                     />
                     <TouchableOpacity
-                        style={styles.addButton}
+                        style={[styles.addButton, { backgroundColor: colors.primary }]}
                         onPress={() => router.push('/pantry/add')}
                     >
-                        <Ionicons name="add" size={32} color={COLORS.card} />
+                        <Ionicons name="add" size={32} color="#ffffff" />
                     </TouchableOpacity>
                 </>
             )}

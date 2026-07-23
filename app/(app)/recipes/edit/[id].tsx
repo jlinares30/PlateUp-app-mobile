@@ -2,6 +2,7 @@ import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import IngredientSelector from "@/src/components/IngredientSelector";
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import api from "@/src/lib/api";
+import { useTranslation } from "@/src/lib/i18n";
 import { Ingredient } from "@/src/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ export default function EditRecipeScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { t, language } = useTranslation();
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -95,12 +97,12 @@ export default function EditRecipeScreen() {
 
     const handleImageSelection = async () => {
         showAlert(
-            "Recipe Photo",
-            "Choose an option",
+            t('recipes.coverPhoto'),
+            language === 'es' ? 'Elige una opción' : 'Choose an option',
             [
-                { text: "Camera", onPress: openCamera },
-                { text: "Gallery", onPress: pickImage },
-                { text: "Cancel", style: "cancel" }
+                { text: language === 'es' ? 'Cámara' : 'Camera', onPress: openCamera },
+                { text: language === 'es' ? 'Galería' : 'Gallery', onPress: pickImage },
+                { text: t('common.cancel'), style: "cancel" }
             ]
         );
     };
@@ -109,7 +111,11 @@ export default function EditRecipeScreen() {
         if (!cameraPermission?.granted) {
             const permission = await requestCameraPermission();
             if (!permission.granted) {
-                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
+                showAlert(
+                    language === 'es' ? 'Permiso requerido' : 'Permission required',
+                    language === 'es' ? 'Se requiere acceso a la cámara para tomar fotos.' : 'Camera access is required to take photos.',
+                    [{ text: "OK" }]
+                );
                 return;
             }
         }
@@ -131,7 +137,11 @@ export default function EditRecipeScreen() {
         if (!libraryPermission?.granted) {
             const permission = await requestLibraryPermission();
             if (!permission.granted) {
-                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
+                showAlert(
+                    language === 'es' ? 'Permiso requerido' : 'Permission required',
+                    language === 'es' ? 'Necesitas permitir el acceso a tus fotos para seleccionar una imagen.' : 'You need to allow access to your photos to select an image.',
+                    [{ text: "OK" }]
+                );
                 return;
             }
         }
@@ -267,7 +277,7 @@ export default function EditRecipeScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Edit Recipe</Text>
+                <Text style={styles.headerTitle}>{t('recipes.editRecipeTitle')}</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -279,7 +289,7 @@ export default function EditRecipeScreen() {
                     ) : (
                         <View style={styles.imagePlaceholder}>
                             <Ionicons name="camera" size={40} color={COLORS.text.light} />
-                            <Text style={styles.imagePlaceholderText}>Add Photo</Text>
+                            <Text style={styles.imagePlaceholderText}>{t('recipes.coverPhoto')}</Text>
                         </View>
                     )}
                     {/* Overlay to indicate edit */}
@@ -289,23 +299,23 @@ export default function EditRecipeScreen() {
                 </TouchableOpacity>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Title *</Text>
+                    <Text style={styles.label}>{t('recipes.recipeTitleLabel')}</Text>
                     <TextInput
                         style={styles.input}
                         value={title}
                         onChangeText={setTitle}
-                        placeholder="e.g. Pasta Carbonara"
+                        placeholder={t('recipes.recipeTitlePlaceholder')}
                         placeholderTextColor={COLORS.text.light}
                     />
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Description</Text>
+                    <Text style={styles.label}>{t('mealplans.planDescLabel')}</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
                         value={description}
                         onChangeText={setDescription}
-                        placeholder="Brief description..."
+                        placeholder={t('mealplans.planDescPlaceholder')}
                         placeholderTextColor={COLORS.text.light}
                         multiline
                     />
@@ -313,17 +323,17 @@ export default function EditRecipeScreen() {
 
                 <View style={styles.row}>
                     <View style={[styles.formGroup, { flex: 1, marginRight: SPACING.s }]}>
-                        <Text style={styles.label}>Time *</Text>
+                        <Text style={styles.label}>{t('recipes.prepTimeLabel')} *</Text>
                         <TextInput
                             style={styles.input}
                             value={time}
                             onChangeText={setTime}
-                            placeholder="e.g. 30 min"
+                            placeholder={t('recipes.prepTimePlaceholder')}
                             placeholderTextColor={COLORS.text.light}
                         />
                     </View>
                     <View style={[styles.formGroup, { flex: 1 }]}>
-                        <Text style={styles.label}>Category *</Text>
+                        <Text style={styles.label}>{t('recipes.categoryLabel')} *</Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                             {['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((cat) => (
                                 <TouchableOpacity
@@ -337,7 +347,7 @@ export default function EditRecipeScreen() {
                                     <Text style={[
                                         styles.difficultyText,
                                         category === cat && styles.difficultyTextActive
-                                    ]}>{cat}</Text>
+                                    ]}>{t(`recipes.categories.${cat}` as any) || cat}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -345,29 +355,34 @@ export default function EditRecipeScreen() {
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Difficulty</Text>
+                    <Text style={styles.label}>{language === 'es' ? 'Dificultad' : 'Difficulty'}</Text>
                     <View style={styles.difficultyContainer}>
-                        {['Easy', 'Medium', 'Hard'].map((level) => (
-                            <TouchableOpacity
-                                key={level}
-                                style={[
-                                    styles.difficultyChip,
-                                    difficulty === level && styles.difficultyChipActive
-                                ]}
-                                onPress={() => setDifficulty(level)}
-                            >
-                                <Text style={[
-                                    styles.difficultyText,
-                                    difficulty === level && styles.difficultyTextActive
-                                ]}>{level}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {['Easy', 'Medium', 'Hard'].map((level) => {
+                            const levelLabel = language === 'es'
+                                ? level === 'Easy' ? 'Fácil' : level === 'Medium' ? 'Medio' : 'Difícil'
+                                : level;
+                            return (
+                                <TouchableOpacity
+                                    key={level}
+                                    style={[
+                                        styles.difficultyChip,
+                                        difficulty === level && styles.difficultyChipActive
+                                    ]}
+                                    onPress={() => setDifficulty(level)}
+                                >
+                                    <Text style={[
+                                        styles.difficultyText,
+                                        difficulty === level && styles.difficultyTextActive
+                                    ]}>{levelLabel}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
 
                 <View style={styles.formGroup}>
                     <View style={styles.rowBetween}>
-                        <Text style={styles.label}>Visibility</Text>
+                        <Text style={styles.label}>{language === 'es' ? 'Visibilidad' : 'Visibility'}</Text>
                         <Switch
                             value={isPublic}
                             onValueChange={setIsPublic}
@@ -376,15 +391,17 @@ export default function EditRecipeScreen() {
                         />
                     </View>
                     <Text style={{ color: COLORS.text.secondary, fontSize: FONTS.sizes.small }}>
-                        {isPublic ? "Public: Everyone can see this recipe" : "Private: Only you can see this recipe"}
+                        {isPublic
+                            ? (language === 'es' ? 'Pública: Todos pueden ver esta receta' : 'Public: Everyone can see this recipe')
+                            : (language === 'es' ? 'Privada: Solo tú puedes ver esta receta' : 'Private: Only you can see this recipe')}
                     </Text>
                 </View>
 
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Tags (comma separated)</Text>
+                    <Text style={styles.label}>{language === 'es' ? 'Etiquetas (separadas por comas)' : 'Tags (comma separated)'}</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="e.g. Healthy, Italian, Quick"
+                        placeholder={language === 'es' ? 'Ej. Saludable, Italiana, Rápida' : 'e.g. Healthy, Italian, Quick'}
                         placeholderTextColor={COLORS.text.light}
                         onChangeText={text => setTags(text)}
                         value={tags}
@@ -393,9 +410,9 @@ export default function EditRecipeScreen() {
 
                 <View style={styles.formGroup}>
                     <View style={styles.rowBetween}>
-                        <Text style={styles.label}>Ingredients</Text>
+                        <Text style={styles.label}>{t('recipes.ingredientsSection')}</Text>
                         <TouchableOpacity onPress={() => setShowIngredientSelector(true)}>
-                            <Text style={styles.addText}>+ Add Ingredient</Text>
+                            <Text style={styles.addText}>+ {t('recipes.addIngredient')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -404,14 +421,14 @@ export default function EditRecipeScreen() {
                             <Text style={[styles.ingredientName, { flex: 2 }]}>{item.ingredient.name}</Text>
                             <TextInput
                                 style={[styles.input, styles.smallInput, { flex: 1 }]}
-                                placeholder="Qty"
+                                placeholder={language === 'es' ? 'Cant.' : 'Qty'}
                                 keyboardType="numeric"
                                 value={item.quantity}
                                 onChangeText={(text) => updateIngredient(index, 'quantity', text)}
                             />
                             <TextInput
                                 style={[styles.input, styles.smallInput, { flex: 1 }]}
-                                placeholder="Unit"
+                                placeholder={language === 'es' ? 'Unid.' : 'Unit'}
                                 value={item.unit}
                                 onChangeText={(text) => updateIngredient(index, 'unit', text)}
                             />
@@ -424,12 +441,12 @@ export default function EditRecipeScreen() {
 
                 {/* Simplified Steps Input */}
                 <View style={styles.formGroup}>
-                    <Text style={styles.label}>Steps (one per line)</Text>
+                    <Text style={styles.label}>{t('recipes.instructionsSection')}</Text>
                     <TextInput
                         style={[styles.input, styles.textArea]}
                         value={steps}
                         onChangeText={setSteps}
-                        placeholder="1. Boil water..."
+                        placeholder={t('recipes.stepPlaceholder')}
                         placeholderTextColor={COLORS.text.light}
                         multiline
                     />
@@ -444,7 +461,7 @@ export default function EditRecipeScreen() {
                     {updateMutation.isPending ? (
                         <ActivityIndicator color="#fff" />
                     ) : (
-                        <Text style={styles.submitButtonText}>Update Recipe</Text>
+                        <Text style={styles.submitButtonText}>{t('mealplans.saveButton')}</Text>
                     )}
                 </TouchableOpacity>
 

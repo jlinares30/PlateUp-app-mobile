@@ -1,7 +1,9 @@
+import { COLORS, useThemeColors } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import api from '../lib/api';
+import { useTranslation } from '../lib/i18n';
 
 interface Recipe {
     _id: string;
@@ -19,6 +21,8 @@ interface Props {
 type FilterType = 'all' | 'my' | 'favorites';
 
 export default function RecipePicker({ visible, onClose, onSelect }: Props) {
+    const { t, language } = useTranslation();
+    const { colors } = useThemeColors();
     const [query, setQuery] = useState('');
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [loading, setLoading] = useState(false);
@@ -67,66 +71,71 @@ export default function RecipePicker({ visible, onClose, onSelect }: Props) {
     };
 
     const renderItem = ({ item }: { item: Recipe }) => (
-        <TouchableOpacity style={styles.item} onPress={() => onSelect(item)}>
+        <TouchableOpacity style={[styles.item, { borderBottomColor: colors.border }]} onPress={() => { onSelect(item); onClose(); }}>
             <View>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                <Text style={styles.itemTime}>{item.time || 'N/A'}</Text>
+                <Text style={[styles.itemTitle, { color: colors.text.primary }]}>{item.title}</Text>
+                <Text style={[styles.itemTime, { color: colors.text.secondary }]}>{item.time} {item.category ? `· ${item.category}` : ''}</Text>
             </View>
-            <Ionicons name="add-circle-outline" size={24} color="#2980b9" />
+            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
     );
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-            <View style={styles.container}>
+        <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.header}>
-                    <Text style={styles.title}>Seleccionar Receta</Text>
+                    <Text style={[styles.title, { color: colors.text.primary }]}>{language === 'es' ? 'Seleccionar Receta' : 'Select Recipe'}</Text>
                     <TouchableOpacity onPress={onClose}>
-                        <Text style={styles.close}>Cerrar</Text>
+                        <Text style={[styles.close, { color: colors.primary }]}>{t('common.cancel')}</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Filter Tabs */}
                 <View style={styles.tabs}>
-                    <TouchableOpacity
-                        style={[styles.tab, filter === 'all' && styles.activeTab]}
-                        onPress={() => changeFilter('all')}
-                    >
-                        <Text style={[styles.tabText, filter === 'all' && styles.activeTabText]}>Explorar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, filter === 'favorites' && styles.activeTab]}
-                        onPress={() => changeFilter('favorites')}
-                    >
-                        <Text style={[styles.tabText, filter === 'favorites' && styles.activeTabText]}>Favoritos</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tab, filter === 'my' && styles.activeTab]}
-                        onPress={() => changeFilter('my')}
-                    >
-                        <Text style={[styles.tabText, filter === 'my' && styles.activeTabText]}>Mis Recetas</Text>
-                    </TouchableOpacity>
+                    {(['all', 'my', 'favorites'] as const).map(tab => (
+                        <TouchableOpacity
+                            key={tab}
+                            style={[
+                                styles.tab,
+                                { backgroundColor: colors.card },
+                                filter === tab && { backgroundColor: colors.primary }
+                            ]}
+                            onPress={() => changeFilter(tab)}
+                        >
+                            <Text style={[
+                                styles.tabText,
+                                { color: colors.text.secondary },
+                                filter === tab && styles.activeTabText
+                            ]}>
+                                {tab === 'all' ? (language === 'es' ? 'Todas' : 'All') :
+                                    tab === 'my' ? (language === 'es' ? 'Mis Recetas' : 'My Recipes') :
+                                        (language === 'es' ? 'Favoritas' : 'Favorites')}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
 
-                <View style={styles.searchBox}>
-                    <Ionicons name="search" size={20} color="#7f8c8d" />
+                {/* Search */}
+                <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Ionicons name="search" size={18} color={colors.text.light} />
                     <TextInput
-                        style={styles.input}
-                        placeholder="Buscar recetas..."
+                        style={[styles.input, { color: colors.text.primary }]}
+                        placeholder={t('recipes.searchTitle')}
+                        placeholderTextColor={colors.text.light}
                         value={query}
                         onChangeText={handleSearch}
                     />
                 </View>
 
                 {loading ? (
-                    <ActivityIndicator style={{ marginTop: 20 }} />
+                    <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />
                 ) : (
                     <FlatList
                         data={recipes}
                         keyExtractor={item => item._id}
                         renderItem={renderItem}
                         contentContainerStyle={styles.list}
-                        ListEmptyComponent={<Text style={styles.empty}>No se encontraron recetas</Text>}
+                        ListEmptyComponent={<Text style={[styles.empty, { color: colors.text.secondary }]}>{t('recipes.noRecipesFound')}</Text>}
                     />
                 )}
             </View>

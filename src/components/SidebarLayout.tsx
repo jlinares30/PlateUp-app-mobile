@@ -6,7 +6,7 @@ import Animated, {
     interpolate,
     useAnimatedStyle
 } from "react-native-reanimated";
-import { COLORS } from "../constants/theme";
+import { COLORS, useThemeColors } from "../constants/theme";
 import { useSidebar } from "../context/SidebarContext";
 import Sidebar from "./Sidebar";
 
@@ -14,6 +14,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
     const { progress, isOpen, toggleSidebar } = useSidebar();
+    const { colors } = useThemeColors();
 
     const animatedStyle = useAnimatedStyle(() => {
         const scale = interpolate(progress.value, [0, 1], [1, 0.8], Extrapolation.CLAMP);
@@ -52,11 +53,11 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     });
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.primary }]}>
             {/* 1. Main Content PRIMERO (estará al fondo visualmente cuando el sidebar suba) */}
             <GestureHandlerRootView style={{ flex: 1 }}>
                 <Animated.View
-                    style={[styles.mainContent, animatedStyle]}
+                    style={[styles.mainContent, { backgroundColor: colors.background }, animatedStyle]}
                     pointerEvents={isOpen ? 'none' : 'auto'} // 'none' hace que los clics ignoren esta capa totalmente
                 >
                     {children}

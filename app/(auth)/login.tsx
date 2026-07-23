@@ -1,4 +1,5 @@
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { useTranslation } from "@/src/lib/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -20,6 +21,7 @@ import { useAuthStore } from "../../src/store/useAuth.js";
 export default function LoginScreen() {
   const router = useRouter();
   const { login, error, loading } = useAuthStore();
+  const { t, language } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
@@ -61,7 +63,10 @@ export default function LoginScreen() {
       router.replace("/(app)");
       console.log("Login successful");
     } else {
-      Alert.alert("Login Failed", "Invalid credentials");
+      Alert.alert(
+        language === 'es' ? 'Error al Iniciar Sesión' : 'Login Failed',
+        language === 'es' ? 'Credenciales inválidas. Por favor verifica tus datos.' : 'Invalid credentials. Please check your data.'
+      );
     }
   };
 

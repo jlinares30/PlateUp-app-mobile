@@ -14,11 +14,13 @@ import {
   View
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { useTranslation } from "@/src/lib/i18n";
 import { useAuthStore } from "../../src/store/useAuth.js";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register, loading } = useAuthStore();
+  const { t, language } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,13 +55,19 @@ export default function RegisterScreen() {
 
     const result = await register(name, email, password);
     if (result === true) {
-      Alert.alert("Success", "Account created! Please log in.");
+      Alert.alert(
+        language === 'es' ? '¡Éxito!' : 'Success',
+        language === 'es' ? '¡Cuenta creada con éxito! Inicia sesión para continuar.' : 'Account created! Please log in.'
+      );
       router.push("./login");
     } else if (typeof result === 'string') {
       if (result.toLowerCase().includes('email')) {
         setErrors(prev => ({ ...prev, email: result }));
       } else {
-        Alert.alert("Registration Failed", result);
+        Alert.alert(
+          language === 'es' ? 'Error en Registro' : 'Registration Failed',
+          result
+        );
       }
     }
   };

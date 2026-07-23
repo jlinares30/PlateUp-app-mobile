@@ -4,22 +4,31 @@ import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
 import { useAuthStore } from '@/src/store/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
+import { useTranslation } from "@/src/lib/i18n";
 
 export default function ProfileScreen() {
     const router = useRouter();
+    const { edit } = useLocalSearchParams<{ edit?: string }>();
     const { user, updateProfile, loading } = useAuthStore();
+    const { t, language } = useTranslation();
     console.log("user:", user);
     const [name, setName] = useState(user?.name || '');
     const [email, setEmail] = useState(user?.email || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [image, setImage] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(edit === 'true');
+
+    useEffect(() => {
+        if (edit === 'true') {
+            setIsEditing(true);
+        }
+    }, [edit]);
 
     const [cameraPermission, requestCameraPermission] = ImagePicker.useCameraPermissions();
     const [mediaPermission, requestMediaPermission] = ImagePicker.useMediaLibraryPermissions();
@@ -38,12 +47,12 @@ export default function ProfileScreen() {
 
     const handleImageSelection = async () => {
         showAlert(
-            "Profile Photo",
-            "Choose an option",
+            t('settings.editProfile'),
+            t('settings.editProfileDesc'),
             [
-                { text: "Camera", onPress: openCamera },
-                { text: "Gallery", onPress: showImagePicker },
-                { text: "Cancel", style: "cancel" }
+                { text: language === 'es' ? 'Cámara' : 'Camera', onPress: openCamera },
+                { text: language === 'es' ? 'Galería' : 'Gallery', onPress: showImagePicker },
+                { text: t('common.cancel'), style: "cancel" }
             ]
         );
     };
@@ -203,19 +212,19 @@ export default function ProfileScreen() {
 
                     <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.form}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Name</Text>
+                            <Text style={styles.label}>{t('profile.name')}</Text>
                             <TextInput
                                 style={[styles.input, !isEditing && styles.disabledInput]}
                                 value={name}
                                 onChangeText={setName}
                                 editable={isEditing}
-                                placeholder="Your Name"
+                                placeholder={t('profile.name')}
                                 placeholderTextColor={COLORS.text.light}
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Email</Text>
+                            <Text style={styles.label}>{t('profile.email')}</Text>
                             <TextInput
                                 style={[styles.input, !isEditing && styles.disabledInput]}
                                 value={email}
@@ -223,7 +232,7 @@ export default function ProfileScreen() {
                                 editable={isEditing}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
-                                placeholder="Your Email"
+                                placeholder={t('profile.email')}
                                 placeholderTextColor={COLORS.text.light}
                             />
                         </View>
@@ -231,24 +240,24 @@ export default function ProfileScreen() {
                         {isEditing && (
                             <>
                                 <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
-                                    <Text style={styles.label}>New Password (Optional)</Text>
+                                    <Text style={styles.label}>{t('profile.newPassword')}</Text>
                                     <TextInput
                                         style={styles.input}
                                         value={password}
                                         onChangeText={setPassword}
                                         secureTextEntry
-                                        placeholder="Leave blank to keep current"
+                                        placeholder="••••••••"
                                         placeholderTextColor={COLORS.text.light}
                                     />
                                 </Animated.View>
                                 <Animated.View entering={FadeInDown.springify()} style={styles.inputGroup}>
-                                    <Text style={styles.label}>Confirm New Password</Text>
+                                    <Text style={styles.label}>{t('profile.confirmPassword')}</Text>
                                     <TextInput
                                         style={styles.input}
                                         value={confirmPassword}
                                         onChangeText={setConfirmPassword}
                                         secureTextEntry
-                                        placeholder="Confirm new password"
+                                        placeholder="••••••••"
                                         placeholderTextColor={COLORS.text.light}
                                     />
                                 </Animated.View>
@@ -266,7 +275,7 @@ export default function ProfileScreen() {
                                 setConfirmPassword('');
                                 setImage(null);
                             }}>
-                                <Text style={styles.cancelText}>Cancel</Text>
+                                <Text style={styles.cancelText}>{t('common.cancel')}</Text>
                             </TouchableOpacity>
                         </Animated.View>
                     )}

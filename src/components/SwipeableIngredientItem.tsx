@@ -1,3 +1,4 @@
+import { COLORS, useThemeColors } from "../constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -18,16 +19,18 @@ type Props = {
 };
 
 export default function SwipeableIngredientItem({ item, onPress, onAdd, shouldAnimate }: Props) {
+  const { colors } = useThemeColors();
+
   return (
     <SwipeableRow onSwipe={() => onAdd?.(item)} style={styles.container} shouldAnimate={shouldAnimate}>
-      <TouchableOpacity style={styles.row} onPress={() => onPress?.()} activeOpacity={0.8}>
+      <TouchableOpacity style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => onPress?.()} activeOpacity={0.8}>
         <View style={styles.info}>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.meta}>
+          <Text style={[styles.name, { color: colors.text.primary }]}>{item.name}</Text>
+          <Text style={[styles.meta, { color: colors.text.secondary }]}>
             {item.category ?? "Sin categoría"} · {item.unit ?? "unidad"}
           </Text>
         </View>
-        <Ionicons name="arrow-forward-circle-outline" size={24} color="#cbd5e1" style={styles.arrow} />
+        <Ionicons name="arrow-forward-circle-outline" size={24} color={colors.text.light} style={styles.arrow} />
       </TouchableOpacity>
     </SwipeableRow>
   );

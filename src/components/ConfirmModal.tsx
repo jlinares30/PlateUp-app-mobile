@@ -1,4 +1,5 @@
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
+import { useTranslation } from "@/src/lib/i18n";
 import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { ZoomIn } from "react-native-reanimated";
@@ -24,7 +25,14 @@ export default function ConfirmModal({
     message,
     actions = []
 }: ConfirmModalProps) {
+    const { t } = useTranslation();
+    const { colors } = useThemeColors();
+
     if (!visible) return null;
+
+    const displayActions = actions.length > 0 ? actions : [
+        { text: t('common.cancel'), style: 'cancel', onPress: onClose }
+    ];
 
     return (
         <Modal
@@ -34,12 +42,12 @@ export default function ConfirmModal({
             onRequestClose={onClose}
         >
             <View style={styles.overlay}>
-                <Animated.View entering={ZoomIn.duration(200)} style={styles.modalContainer}>
-                    <Text style={styles.title}>{title}</Text>
-                    {message ? <Text style={styles.message}>{message}</Text> : null}
+                <Animated.View entering={ZoomIn.duration(200)} style={[styles.modalContainer, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.title, { color: colors.text.primary }]}>{title}</Text>
+                    {message ? <Text style={[styles.message, { color: colors.text.secondary }]}>{message}</Text> : null}
 
-                    <View style={[styles.buttonContainer, actions.length > 2 && styles.verticalButtons]}>
-                        {actions.map((action, index) => {
+                    <View style={[styles.buttonContainer, displayActions.length > 2 && styles.verticalButtons]}>
+                        {displayActions.map((action, index) => {
                             const isCancel = action.style === 'cancel';
                             const isDestructive = action.style === 'destructive';
 
@@ -48,9 +56,9 @@ export default function ConfirmModal({
                                     key={index}
                                     style={[
                                         styles.button,
-                                        actions.length > 2 ? styles.fullWidthButton : null,
-                                        isCancel ? styles.cancelButton :
-                                            isDestructive ? styles.destructiveButton : styles.defaultButton
+                                        displayActions.length > 2 ? styles.fullWidthButton : null,
+                                        isCancel ? [styles.cancelButton, { borderColor: colors.border }] :
+                                            isDestructive ? styles.destructiveButton : [styles.defaultButton, { backgroundColor: colors.primary }]
                                     ]}
                                     onPress={() => {
                                         if (action.onPress) action.onPress();
@@ -59,7 +67,7 @@ export default function ConfirmModal({
                                 >
                                     <Text style={[
                                         styles.buttonText,
-                                        isCancel ? styles.cancelText :
+                                        isCancel ? [styles.cancelText, { color: colors.text.primary }] :
                                             isDestructive ? styles.destructiveText : styles.defaultText
                                     ]}>
                                         {action.text}

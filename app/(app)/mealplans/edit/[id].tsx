@@ -1,5 +1,6 @@
 import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { useTranslation } from "@/src/lib/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -29,6 +30,7 @@ import * as ImagePicker from 'expo-image-picker';
 export default function EditMealPlanScreen() {
     const { id } = useLocalSearchParams<{ id: string }>();
     const router = useRouter();
+    const { t, language } = useTranslation();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -92,12 +94,12 @@ export default function EditMealPlanScreen() {
 
     const handleImageSelection = async () => {
         showAlert(
-            "Meal Plan Photo",
-            "Choose an option",
+            t('mealplans.coverPhoto'),
+            t('recipes.coverPhoto'),
             [
-                { text: "Camera", onPress: openCamera },
-                { text: "Gallery", onPress: pickImage },
-                { text: "Cancel", style: "cancel" }
+                { text: language === 'es' ? 'Cámara' : 'Camera', onPress: openCamera },
+                { text: language === 'es' ? 'Galería' : 'Gallery', onPress: pickImage },
+                { text: t('common.cancel'), style: "cancel" }
             ]
         );
     };
@@ -106,7 +108,11 @@ export default function EditMealPlanScreen() {
         if (!cameraPermission?.granted) {
             const permission = await requestCameraPermission();
             if (!permission.granted) {
-                showAlert("Permission required", "Camera access is required to take photos.", [{ text: "OK" }]);
+                showAlert(
+                    language === 'es' ? 'Permiso requerido' : 'Permission required',
+                    language === 'es' ? 'Se requiere acceso a la cámara para tomar fotos.' : 'Camera access is required to take photos.',
+                    [{ text: "OK" }]
+                );
                 return;
             }
         }
@@ -127,7 +133,11 @@ export default function EditMealPlanScreen() {
         if (!libraryPermission?.granted) {
             const permission = await requestLibraryPermission();
             if (!permission.granted) {
-                showAlert("Permission required", "You need to allow access to your photos to select an image.", [{ text: "OK" }]);
+                showAlert(
+                    language === 'es' ? 'Permiso requerido' : 'Permission required',
+                    language === 'es' ? 'Necesitas permitir el acceso a tus fotos para seleccionar una imagen.' : 'You need to allow access to your photos to select an image.',
+                    [{ text: "OK" }]
+                );
                 return;
             }
         }
@@ -281,12 +291,12 @@ export default function EditMealPlanScreen() {
                     <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Edit Plan</Text>
+                    <Text style={styles.headerTitle}>{t('mealplans.editPlanTitle')}</Text>
                     <TouchableOpacity onPress={() => handleSave()} disabled={updateMutation.isPending} style={styles.saveButton}>
                         {updateMutation.isPending ? (
                             <ActivityIndicator size="small" color={COLORS.card} />
                         ) : (
-                            <Text style={styles.saveButtonText}>Save</Text>
+                            <Text style={styles.saveButtonText}>{t('mealplans.saveButton')}</Text>
                         )}
                     </TouchableOpacity>
                 </View>
@@ -299,7 +309,7 @@ export default function EditMealPlanScreen() {
                         ) : (
                             <View style={styles.imagePlaceholder}>
                                 <Ionicons name="camera" size={40} color={COLORS.text.light} />
-                                <Text style={styles.imagePlaceholderText}>Change Cover Photo</Text>
+                                <Text style={styles.imagePlaceholderText}>{t('mealplans.coverPhoto')}</Text>
                             </View>
                         )}
                     </TouchableOpacity>
@@ -307,22 +317,22 @@ export default function EditMealPlanScreen() {
                     {/* Metadata Section */}
                     <Animated.View entering={FadeInDown.springify()} style={styles.section}>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Title</Text>
+                            <Text style={styles.label}>{t('mealplans.planTitleLabel')}</Text>
                             <TextInput
                                 style={styles.input}
                                 value={title}
                                 onChangeText={setTitle}
-                                placeholder="My Weekly Plan"
+                                placeholder={t('mealplans.planTitlePlaceholder')}
                                 placeholderTextColor={COLORS.text.light}
                             />
                         </View>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Description</Text>
+                            <Text style={styles.label}>{t('mealplans.planDescLabel')}</Text>
                             <TextInput
                                 style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                                 value={description}
                                 onChangeText={setDescription}
-                                placeholder="A healthy plan for this week..."
+                                placeholder={t('mealplans.planDescPlaceholder')}
                                 placeholderTextColor={COLORS.text.light}
                                 multiline
                             />
@@ -331,8 +341,8 @@ export default function EditMealPlanScreen() {
                         {/* Active Switch */}
                         <View style={styles.switchContainer}>
                             <View>
-                                <Text style={styles.switchLabel}>Active Plan</Text>
-                                <Text style={styles.switchSubLabel}>Make this your current plan</Text>
+                                <Text style={styles.switchLabel}>{t('mealplans.activePlanLabel')}</Text>
+                                <Text style={styles.switchSubLabel}>{t('mealplans.activePlanSublabel')}</Text>
                             </View>
                             <Switch
                                 value={isActive}
@@ -345,8 +355,8 @@ export default function EditMealPlanScreen() {
                         {/* Public Switch */}
                         <View style={styles.switchContainer}>
                             <View>
-                                <Text style={styles.switchLabel}>Public Plan</Text>
-                                <Text style={styles.switchSubLabel}>Allow others to see this plan</Text>
+                                <Text style={styles.switchLabel}>{t('mealplans.publicPlanLabel')}</Text>
+                                <Text style={styles.switchSubLabel}>{t('mealplans.publicPlanSublabel')}</Text>
                             </View>
                             <Switch
                                 value={isPublic}
@@ -358,7 +368,7 @@ export default function EditMealPlanScreen() {
                     </Animated.View>
 
                     {/* Days Section */}
-                    <Text style={styles.sectionTitle}>Days and Meals</Text>
+                    <Text style={styles.sectionTitle}>{t('mealplans.daysAndMeals')}</Text>
                     {days.map((day, dayIndex) => (
                         <Animated.View
                             key={day._id || dayIndex}
@@ -373,7 +383,7 @@ export default function EditMealPlanScreen() {
                                         value={day.day}
                                         onChangeText={(t) => updateDayTitle(t, dayIndex)}
                                         style={styles.dayTitleInput}
-                                        placeholder="Day Name"
+                                        placeholder={t('mealplans.dayNamePlaceholder')}
                                         placeholderTextColor={COLORS.text.light}
                                     />
                                 </View>
@@ -399,14 +409,14 @@ export default function EditMealPlanScreen() {
 
                             <TouchableOpacity style={styles.addMealButton} onPress={() => openPicker(dayIndex)}>
                                 <Ionicons name="add" size={16} color={COLORS.primary} />
-                                <Text style={styles.addMealText}>Add Meal</Text>
+                                <Text style={styles.addMealText}>{t('mealplans.addMeal')}</Text>
                             </TouchableOpacity>
                         </Animated.View>
                     ))}
 
                     <TouchableOpacity style={styles.addDayButton} onPress={addDay}>
                         <Ionicons name="add-circle-outline" size={24} color={COLORS.primary} style={{ marginRight: SPACING.s }} />
-                        <Text style={styles.addDayText}>Add Day</Text>
+                        <Text style={styles.addDayText}>{t('mealplans.addDay')}</Text>
                     </TouchableOpacity>
 
                     <View style={{ height: 40 }} />

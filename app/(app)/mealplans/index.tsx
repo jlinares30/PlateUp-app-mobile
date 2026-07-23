@@ -1,6 +1,7 @@
 import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
 import Skeleton from "@/src/components/Skeleton";
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
+import { useTranslation } from "@/src/lib/i18n";
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from "expo-router";
@@ -44,6 +45,7 @@ const MealPlanSkeleton = () => (
 
 export default function MealPlansScreen() {
   const router = useRouter();
+  const { t, language } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('my-plans');
   const user = useAuthStore((state: any) => state.user);
   const queryClient = useQueryClient();
@@ -80,6 +82,7 @@ export default function MealPlansScreen() {
   });
 
   // Derived state
+  const { colors } = useThemeColors();
   const isLoading = loadingPublic || loadingMy;
   const isRefreshing = refetchingPublic || refetchingMy;
 
@@ -149,58 +152,70 @@ export default function MealPlansScreen() {
   };
 
   const handleDuplicate = (plan: MealPlan) => {
-    showAlert("Duplicate Plan", `Do you want to add "${plan.title}"?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Yes, add it",
-        onPress: () => duplicateMutation.mutate(plan._id)
-      }
-    ]);
+    showAlert(
+      language === 'es' ? 'Duplicar Plan' : 'Duplicate Plan',
+      language === 'es' ? `¿Deseas agregar "${plan.title}" a tus planes?` : `Do you want to add "${plan.title}"?`,
+      [
+        { text: t('common.cancel'), style: "cancel" },
+        {
+          text: language === 'es' ? 'Sí, agregar' : 'Yes, add it',
+          onPress: () => duplicateMutation.mutate(plan._id)
+        }
+      ]
+    );
   };
 
   const handleDelete = (plan: MealPlan) => {
-    showAlert("Delete Plan", `Are you sure you want to delete "${plan.title}"?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: 'destructive', onPress: () => deleteMutation.mutate(plan._id) }
-    ]);
+    showAlert(
+      language === 'es' ? 'Eliminar Plan' : 'Delete Plan',
+      language === 'es' ? `¿Estás seguro de que deseas eliminar "${plan.title}"?` : `Are you sure you want to delete "${plan.title}"?`,
+      [
+        { text: t('common.cancel'), style: "cancel" },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => deleteMutation.mutate(plan._id)
+        }
+      ]
+    );
   };
 
   const renderItem = ({ item, index }: { item: MealPlan; index: number }) => (
     <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { backgroundColor: colors.card }]}
         activeOpacity={0.9}
         onPress={() => router.push(`/mealplans/${item._id}`)}
       >
         <View style={styles.cardContent}>
           <View style={styles.cardHeader}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="calendar-outline" size={24} color={COLORS.primary} />
+            <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="calendar-outline" size={24} color={colors.primary} />
             </View>
             <View style={{ flex: 1, marginLeft: SPACING.m }}>
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardSubtitle}>{item.description || 'No description provided'}</Text>
+              <Text style={[styles.cardTitle, { color: colors.text.primary }]}>{item.title}</Text>
+              <Text style={[styles.cardSubtitle, { color: colors.text.secondary }]}>{item.description || 'No description provided'}</Text>
             </View>
           </View>
 
           <View style={styles.cardFooter}>
-            <View style={styles.tag}>
-              <Ionicons name="time-outline" size={14} color={COLORS.text.light} />
-              <Text style={styles.tagText}>{item.days?.length || 0} days</Text>
+            <View style={[styles.tag, { backgroundColor: colors.background }]}>
+              <Ionicons name="time-outline" size={14} color={colors.text.light} />
+              <Text style={[styles.tagText, { color: colors.text.secondary }]}>{item.days?.length || 0} days</Text>
             </View>
 
             <View style={styles.actions}>
               {activeTab === 'discover' ? (
-                <TouchableOpacity onPress={() => handleDuplicate(item)} style={styles.actionButton}>
-                  <Ionicons name="copy-outline" size={20} color={COLORS.secondary} />
+                <TouchableOpacity onPress={() => handleDuplicate(item)} style={[styles.actionButton, { backgroundColor: colors.background }]}>
+                  <Ionicons name="copy-outline" size={20} color={colors.secondary} />
                 </TouchableOpacity>
               ) : (
                 <>
-                  <TouchableOpacity onPress={() => router.push(`/mealplans/edit/${item._id}`)} style={[styles.actionButton, { marginRight: SPACING.s }]}>
-                    <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                  <TouchableOpacity onPress={() => router.push(`/mealplans/edit/${item._id}`)} style={[styles.actionButton, { backgroundColor: colors.background, marginRight: SPACING.s }]}>
+                    <Ionicons name="create-outline" size={20} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => handleDelete(item)} style={[styles.actionButton, { backgroundColor: '#fee2e2' }]}>
-                    <Ionicons name="trash-outline" size={20} color={COLORS.error} />
+                    <Ionicons name="trash-outline" size={20} color={colors.error} />
                   </TouchableOpacity>
                 </>
               )}
@@ -229,14 +244,14 @@ export default function MealPlansScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-clear-outline" size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
-            <Text style={styles.emptyText}>
+            <Ionicons name="calendar-clear-outline" size={64} color={colors.text.light} style={{ marginBottom: SPACING.m }} />
+            <Text style={[styles.emptyText, { color: colors.text.secondary }]}>
               {activeTab === 'my-plans'
-                ? "You don't have any active plans.\nGo to Discover to add one!"
-                : "No public plans available."}
+                ? t('mealplans.noPlansFound')
+                : t('mealplans.noPlansFound')}
             </Text>
           </View>
         }
@@ -245,21 +260,21 @@ export default function MealPlansScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         {/* Tabs */}
-        <View style={styles.tabContainer}>
+        <View style={[styles.tabContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'my-plans' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'my-plans' && { backgroundColor: colors.primary }]}
             onPress={() => setActiveTab('my-plans')}
           >
-            <Text style={[styles.tabText, activeTab === 'my-plans' && styles.activeTabText]}>My Plans</Text>
+            <Text style={[styles.tabText, { color: colors.text.secondary }, activeTab === 'my-plans' && { color: '#ffffff', fontWeight: '700' }]}>{t('mealplans.myPlans')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
+            style={[styles.tab, activeTab === 'discover' && { backgroundColor: colors.primary }]}
             onPress={() => setActiveTab('discover')}
           >
-            <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>Discover</Text>
+            <Text style={[styles.tabText, { color: colors.text.secondary }, activeTab === 'discover' && { color: '#ffffff', fontWeight: '700' }]}>{t('mealplans.publicPlans')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -270,7 +285,7 @@ export default function MealPlansScreen() {
         {/* FAB for creating new plan */}
         {activeTab === 'my-plans' && (
           <TouchableOpacity
-            style={styles.fab}
+            style={[styles.fab, { backgroundColor: colors.primary }]}
             onPress={() => router.push("/mealplans/create")}
           >
             <Ionicons name="add" size={30} color="#fff" />

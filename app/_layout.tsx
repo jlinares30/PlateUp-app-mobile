@@ -5,6 +5,7 @@ import * as Updates from 'expo-updates'; // 1. Importamos Updates
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Text, View } from 'react-native'; // Añadimos Alert
 import Toast from 'react-native-toast-message';
+import { useThemeColors } from "../src/constants/theme";
 import { useAuthStore } from "../src/store/useAuth.js";
 
 const queryClient = new QueryClient();
@@ -100,9 +101,10 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const { isDark } = useThemeColors();
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <RootLayoutNav />
       <Toast position='bottom' bottomOffset={80} />
     </QueryClientProvider>

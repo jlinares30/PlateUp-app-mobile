@@ -1,6 +1,7 @@
 import ConfirmModal, { ModalAction } from '@/src/components/ConfirmModal';
-import { COLORS, FONTS, SHADOWS, SPACING } from "@/src/constants/theme";
+import { COLORS, FONTS, SHADOWS, SPACING, useThemeColors } from "@/src/constants/theme";
 import api from "@/src/lib/api";
+import { useTranslation } from "@/src/lib/i18n";
 import { normalizeTags } from "@/src/lib/utils";
 import { useAuthStore } from "@/src/store/useAuth";
 import { Recipe } from "@/src/types";
@@ -24,9 +25,11 @@ type Tab = 'my-recipes' | 'favorites';
 
 export default function MyRecipesScreen() {
     const router = useRouter();
+    const queryClient = useQueryClient();
+    const { t, language } = useTranslation();
+    const { colors } = useThemeColors();
     const [activeTab, setActiveTab] = useState<Tab>('my-recipes');
     const { user } = useAuthStore();
-    const queryClient = useQueryClient();
 
     // Query for My Recipes
     const {
@@ -95,12 +98,12 @@ export default function MyRecipesScreen() {
 
     const handleDelete = (id: string) => {
         showAlert(
-            "Delete Recipe",
-            "Are you sure you want to delete this recipe?",
+            language === 'es' ? 'Eliminar Receta' : 'Delete Recipe',
+            language === 'es' ? '¿Estás seguro de que deseas eliminar esta receta?' : 'Are you sure you want to delete this recipe?',
             [
-                { text: "Cancel", style: "cancel" },
+                { text: t('common.cancel'), style: "cancel" },
                 {
-                    text: "Delete",
+                    text: t('common.delete'),
                     style: "destructive",
                     onPress: () => deleteMutation.mutate(id)
                 }
@@ -179,8 +182,8 @@ export default function MyRecipesScreen() {
                         <Ionicons name={activeTab === 'my-recipes' ? "restaurant-outline" : "heart-outline"} size={64} color={COLORS.text.light} style={{ marginBottom: SPACING.m }} />
                         <Text style={styles.emptyText}>
                             {activeTab === 'my-recipes'
-                                ? "You haven't created any recipes yet."
-                                : "No favorite recipes found."}
+                                ? t('recipes.noMyRecipes')
+                                : t('recipes.noFavorites')}
                         </Text>
                     </View>
                 }
@@ -194,7 +197,7 @@ export default function MyRecipesScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Collections</Text>
+                <Text style={styles.headerTitle}>{t('recipes.myCollection')}</Text>
                 <View style={{ width: 24 }} />
             </View>
 
@@ -205,13 +208,13 @@ export default function MyRecipesScreen() {
                         style={[styles.tab, activeTab === 'my-recipes' && styles.activeTab]}
                         onPress={() => setActiveTab('my-recipes')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'my-recipes' && styles.activeTabText]}>My Recipes</Text>
+                        <Text style={[styles.tabText, activeTab === 'my-recipes' && styles.activeTabText]}>{t('recipes.myRecipes')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[styles.tab, activeTab === 'favorites' && styles.activeTab]}
                         onPress={() => setActiveTab('favorites')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'favorites' && styles.activeTabText]}>Favorites</Text>
+                        <Text style={[styles.tabText, activeTab === 'favorites' && styles.activeTabText]}>{t('recipes.favorites')}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -262,6 +265,8 @@ const styles = StyleSheet.create({
         fontSize: FONTS.sizes.h3,
         fontWeight: '700',
         color: COLORS.text.primary,
+        textAlign: 'center',
+        flex: 1,
     },
     backButton: {
         padding: SPACING.xs
