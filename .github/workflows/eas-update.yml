@@ -30,7 +30,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: 🚀 Publish EAS Update
         env:
