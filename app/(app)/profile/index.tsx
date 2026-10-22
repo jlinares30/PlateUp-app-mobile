@@ -12,7 +12,7 @@ import Toast from 'react-native-toast-message';
 
 export default function ProfileScreen() {
     const router = useRouter();
-    const { user, updateProfile, loading } = useAuthStore();
+    const { user, updateProfile, deleteAccount, loading } = useAuthStore();
     console.log("user:", user);
     const [name, setName] = useState(user?.name || '');
     const [email, setEmail] = useState(user?.email || '');
@@ -143,6 +143,37 @@ export default function ProfileScreen() {
         }
     };
 
+    const handleDeleteAccount = () => {
+        showAlert(
+            "Delete Account",
+            "Are you sure you want to delete your account? This action is permanent and will delete all your recipes, meal plans, and personal data.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        const success = await deleteAccount();
+                        if (success) {
+                            Toast.show({
+                                type: 'success',
+                                text1: 'Account Deleted',
+                                text2: 'Your account and data have been removed.'
+                            });
+                            router.replace('/(auth)/login');
+                        } else {
+                            Toast.show({
+                                type: 'error',
+                                text1: 'Error',
+                                text2: 'Failed to delete account. Please try again.'
+                            });
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     if (!user) {
         return (
             <View style={styles.container}>
@@ -256,7 +287,7 @@ export default function ProfileScreen() {
                         )}
                     </Animated.View>
 
-                    {isEditing && (
+                    {isEditing ? (
                         <Animated.View entering={FadeInDown.springify()}>
                             <TouchableOpacity style={styles.cancelButton} onPress={() => {
                                 setIsEditing(false);
@@ -267,6 +298,18 @@ export default function ProfileScreen() {
                                 setImage(null);
                             }}>
                                 <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    ) : (
+                        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.dangerZone}>
+                            <Text style={styles.dangerZoneTitle}>Danger Zone</Text>
+                            <TouchableOpacity
+                                style={styles.deleteAccountButton}
+                                onPress={handleDeleteAccount}
+                                disabled={loading}
+                            >
+                                <Ionicons name="trash-outline" size={20} color={COLORS.error} style={{ marginRight: SPACING.s }} />
+                                <Text style={styles.deleteAccountText}>Delete Account</Text>
                             </TouchableOpacity>
                         </Animated.View>
                     )}
@@ -424,5 +467,38 @@ const styles = StyleSheet.create({
         ...SHADOWS.medium,
         zIndex: 100,
         elevation: 5
+    },
+    dangerZone: {
+        marginTop: SPACING.xl,
+        backgroundColor: COLORS.card,
+        borderRadius: SPACING.l,
+        padding: SPACING.l,
+        borderWidth: 1,
+        borderColor: '#fee2e2',
+        ...SHADOWS.small,
+    },
+    dangerZoneTitle: {
+        fontSize: FONTS.sizes.small,
+        color: COLORS.text.secondary,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: SPACING.m,
+    },
+    deleteAccountButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: SPACING.m,
+        paddingHorizontal: SPACING.l,
+        borderRadius: SPACING.s,
+        borderWidth: 1,
+        borderColor: COLORS.error,
+        backgroundColor: '#fef2f2',
+    },
+    deleteAccountText: {
+        color: COLORS.error,
+        fontSize: FONTS.sizes.body,
+        fontWeight: '600',
     }
 });

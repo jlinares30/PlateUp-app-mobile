@@ -77,6 +77,24 @@ export const useAuthStore = create(
         }
       },
 
+      deleteAccount: async () => {
+        try {
+          set({ loading: true, error: null });
+          await api.delete("/auth/profile");
+          console.log("🗑️ Account deleted successfully");
+          get().logout();
+          set({ loading: false });
+          return true;
+        } catch (error) {
+          console.error("Account deletion error:", error.response?.data || error.message);
+          set({
+            error: error.response?.data?.message || "Failed to delete account",
+            loading: false
+          });
+          return false;
+        }
+      },
+
       logout: () => {
         console.log("🚪 Logging out");
         set({
