@@ -25,12 +25,12 @@ export default {
     },
     android: {
       package: "com.jorge.plateup",
+      versionCode: 1,
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#ffffff"
       },
-      permissions: ["android.permission.RECORD_AUDIO"],
-      usesCleartextTraffic: true
+      permissions: []
     },
     plugins: [
       "expo-router",
